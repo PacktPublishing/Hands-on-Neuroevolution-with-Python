@@ -4,6 +4,11 @@ data/
 # The output directory
 out*/
 
+# MacOS specific
+.DS_Store
+
+# VS Code specific
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
