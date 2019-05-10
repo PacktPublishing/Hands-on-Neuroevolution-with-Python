@@ -102,6 +102,7 @@ def run_experiment(config_file):
     else:
         print("\n\nFAILURE: Failed to find XOR problem solver!!!")
 
+    # Visualize the experiment results
     node_names = {-1:'A', -2: 'B', 0:'A XOR B'}
     visualize.draw_net(config, best_genome, True, node_names=node_names, directory=out_dir)
     visualize.plot_stats(stats, ylog=False, view=True, filename=os.path.join(out_dir, 'avg_fitness.svg'))
