@@ -3,6 +3,7 @@
 # which use Euler's method for numerical approximation the equations on motion.
 #
 import math
+import random
 
 #
 # The constants defining physics of cart-pole apparatus
@@ -35,7 +36,9 @@ def do_step(action, x, x_dot, theta, theta_dot):
         The numerically approximated values of state variables
         after current time step (TAU)
     """
+    # Find the force direction
     force = -FORCE_MAG if action <= 0 else FORCE_MAG
+    # Pre-calcuate cosine and sine to optimize performance 
     cos_theta = math.cos(theta)
     sin_theta = math.sin(theta)
 
@@ -52,3 +55,55 @@ def do_step(action, x, x_dot, theta, theta_dot):
     theta_dot_ret = theta_dot + TAU * theta_acc
 
     return x_ret, x_dot_ret, theta_ret, theta_dot_ret
+
+def run_cart_pole_simulation(net, max_bal_steps=500000, random_start=True):
+    """
+    The function to run cart-pole apparatus simulation for a
+    given number of time steps as maximum.
+    Arguments:
+        net: The ANN of the phenotype to be evaluated.
+        max_bal_steps: The maximum nubmer of time steps to
+            execute simulation.
+        random_start: If evaluates to True than cart-pole simulation 
+            starts from random initial positions.
+    Returns:
+        the number of steps that the control ANN was able to
+        maintain the single-pole balancer in stable state.
+    """
+    # Set random initial state if appropriate
+    x, x_dot, theta, theta_dot = 0.0, 0.0, 0.0, 0.0
+    if random_start:
+        x = random.random() * 4.8 - 2.4 # -2.4 < x < 2.4
+        x_dot = random.random() * 3 - 1.5 # -1.5 < x_dot < 1.5
+        theta = random.random() * 0.42 - 0.21 # -0.21 < theta < 0.21
+        theta_dot = random.random() * 4 - 2 # -2 < theta_dot < 2
+
+    # Run simulation for specified number of steps while
+    # cart-pole system stays within contstraints
+    input = [None] * 5 # the inputs
+    for steps in range(1, max_bal_steps + 1):
+        # Load scaled inputs
+        input[0] = 1.0  # Bias
+        input[1] = (x + 2.4) / 4.8
+        input[2] = (x_dot + 1.5) / 3
+        input[3] = (theta + 0.21) / .42
+        input[4] = (theta_dot + 2.0) / 4.0
+
+        # Activate the NET
+        output = net.activate(input)
+        # Make action values discrete
+        action = 0 if output < 0.5 else 1
+
+        # Apply action to the simulated cart-pole
+        x, x_dot, theta, theta_dot = do_step(   action = action, 
+                                                x = x, 
+                                                x_dot = x_dot, 
+                                                theta = theta, 
+                                                theta_dot = theta_dot )
+
+        # Check for failure due constraints violation. If so, return number of steps.
+        if x < -2.4 or x > 2.4 or theta < -0.21 or theta > 0.21:
+            return steps
+
+    return steps
+
