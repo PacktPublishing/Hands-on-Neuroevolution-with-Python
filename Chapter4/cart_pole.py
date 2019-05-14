@@ -131,9 +131,9 @@ def eval_fitness(net, max_bal_steps=500000):
         # 500'000 balancing steps
         log_steps = math.log(steps)
         log_max_steps = math.log(max_bal_steps)
-        # Find loss value in range [0, 1]
+        # The loss value is in range [0, 1]
         error = (log_max_steps - log_steps) / log_max_steps
-        # The fitness is a complement of loss to one
+        # The fitness value is a complement of the loss value
         return 1.0 - error
 
 
