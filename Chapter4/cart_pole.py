@@ -56,10 +56,10 @@ def do_step(action, x, x_dot, theta, theta_dot):
 
     return x_ret, x_dot_ret, theta_ret, theta_dot_ret
 
-def run_cart_pole_simulation(net, max_bal_steps=500000, random_start=True):
+def run_cart_pole_simulation(net, max_bal_steps, random_start=True):
     """
     The function to run cart-pole apparatus simulation for a
-    given number of time steps as maximum.
+    certain number of time steps as maximum.
     Arguments:
         net: The ANN of the phenotype to be evaluated.
         max_bal_steps: The maximum nubmer of time steps to
@@ -81,7 +81,7 @@ def run_cart_pole_simulation(net, max_bal_steps=500000, random_start=True):
     # Run simulation for specified number of steps while
     # cart-pole system stays within contstraints
     input = [None] * 5 # the inputs
-    for steps in range(1, max_bal_steps + 1):
+    for steps in range(max_bal_steps):
         # Load scaled inputs
         input[0] = 1.0  # Bias
         input[1] = (x + 2.4) / 4.8
@@ -105,5 +105,38 @@ def run_cart_pole_simulation(net, max_bal_steps=500000, random_start=True):
         if x < -2.4 or x > 2.4 or theta < -0.21 or theta > 0.21:
             return steps
 
-    return steps
+    return max_bal_steps
+
+def eval_fitness(net, max_bal_steps=500000):
+    """
+    The function to evaluate fitness score of phenotype produced
+    provided ANN
+    Arguments:
+        net: The ANN of the phenotype to be evaluated.
+        max_bal_steps: The maximum nubmer of time steps to
+            execute simulation.
+    Returns:
+        The phenotype fitness score in range [0, 1]
+    """
+    # First we run simulation loop returning number of successfull
+    # simulation steps
+    steps = run_cart_pole_simulation(net, max_bal_steps)
+
+    if steps == max_bal_steps:
+        # the maximal fitness
+        return 1.0 
+    else:
+        # we use logarithmic scale because most cart-pole runs fails 
+        # too early - within ~100 steps, but we are testing against 
+        # 500'000 balancing steps
+        log_steps = math.log(steps)
+        log_max_steps = math.log(max_bal_steps)
+        # Find loss value in range [0, 1]
+        error = (log_max_steps - log_steps) / log_max_steps
+        # The fitness is a complement of loss to one
+        return 1.0 - error
+
+
+
+
 
