@@ -17,6 +17,11 @@ local_dir = os.path.dirname(__file__)
 # The directory to store outputs
 out_dir = os.path.join(local_dir, 'out')
 
+# The number of additional simulation runs for the winner genome
+additional_num_runs = 100
+# The number os steps in additional simulation runs
+additional_steps = 200
+
 def eval_genomes(genomes, config):
     """
     The function to evaluate the fitness of each genome in 
@@ -38,7 +43,16 @@ def eval_genomes(genomes, config):
     for genome_id, genome in genomes:
         genome.fitness = 0.0
         net = neat.nn.FeedForwardNetwork.create(genome, config)
-        genome.fitness = cart.eval_fitness(net)
+        fitness = cart.eval_fitness(net)
+        if fitness >= config.fitness_threshold:
+            # do additional steps of evaluation with random initial states
+            # to make sure that we found stable control strategy rather than
+            # special case for particular initial state
+            success_runs = evaluate_best_net(net, config, additional_num_runs)
+            # adjust fitness
+            fitness = 1.0 - (additional_num_runs - success_runs) / additional_num_runs
+
+        genome.fitness = fitness
 
 def run_experiment(config_file, n_generations=100):
     """
@@ -72,17 +86,39 @@ def run_experiment(config_file, n_generations=100):
 
     # Check if the best genome is a winning Sinle-Pole balancing controller 
     net = neat.nn.FeedForwardNetwork.create(best_genome, config)
-    best_genome_fitness = cart.eval_fitness(net)
-    if best_genome_fitness >= config.fitness_threshold:
-        print("\n\nSUCCESS: The Sinle-Pole balancing controller found!!!")
+    print("\n\nEvaluating the best genome in random runs")
+    success_runs = evaluate_best_net(net, config, additional_num_runs)
+    print("Runs successful/expected: %d/%d" % (success_runs, additional_num_runs))
+    if success_runs == additional_num_runs:
+        print("SUCCESS: The stable Sinle-Pole balancing controller found!!!")
     else:
-        print("\n\nFAILURE: Failed to find Sinle-Pole balancing controller!!!")
+        print("FAILURE: Failed to find the stable Sinle-Pole balancing controller!!!")
 
     # Visualize the experiment results
     node_names = {-1:'x', -2:'dot_x', -3:'θ', -4:'dot_θ', 0:'action'}
     visualize.draw_net(config, best_genome, True, node_names=node_names, directory=out_dir, fmt='svg')
     visualize.plot_stats(stats, ylog=False, view=True, filename=os.path.join(out_dir, 'avg_fitness.svg'))
     visualize.plot_species(stats, view=True, filename=os.path.join(out_dir, 'speciation.svg'))
+
+def evaluate_best_net(net, config, num_runs):
+    """
+    The function to evaluate the ANN of the best genome in
+    specified number of sequetial runs. It is aimed to test it
+    against various random initial states that checks if it is
+    implementing stable control strategy or just a special case
+    for particular initial state.
+    Arguments:
+        net:        The ANN to evaluate
+        config:     The hyper-parameters configuration
+        num_runs:   The number of sequential runs
+    Returns:
+        The number of succesful runs 
+    """
+    for run in range(num_runs):
+        fitness = cart.eval_fitness(net, max_bal_steps=additional_steps)
+        if fitness < config.fitness_threshold:
+            return run
+    return num_runs
 
 def clean_output():
     if os.path.isdir(out_dir):
