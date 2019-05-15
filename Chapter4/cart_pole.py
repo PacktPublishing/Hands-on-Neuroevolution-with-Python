@@ -76,10 +76,10 @@ def run_cart_pole_simulation(net, max_bal_steps, random_start=True):
     # Set random initial state if appropriate
     x, x_dot, theta, theta_dot = 0.0, 0.0, 0.0, 0.0
     if random_start:
-        x = random.random() * 4.8 - 2.4 # -2.4 < x < 2.4
-        x_dot = (random.random() * 3 - 1.5) / 2.0 # -0.75 < x_dot < 0.75
-        theta = random.random() * 0.42 - 0.21 # -0.21 < theta < 0.21
-        theta_dot = (random.random() * 4 - 2) / 2.0 # -1.0 < theta_dot < 1.0
+        x = (random.random() * 4.8 - 2.4) / 2.0 # -1.4 < x < 1.4
+        x_dot = (random.random() * 3 - 1.5) / 4.0 # -0.375 < x_dot < 0.375
+        theta = (random.random() * 0.42 - 0.21) / 2.0 # -0.105 < theta < 0.105
+        theta_dot = (random.random() * 4 - 2) / 4.0 # -0.5 < theta_dot < 0.5
 
     # Run simulation for specified number of steps while
     # cart-pole system stays within contstraints
