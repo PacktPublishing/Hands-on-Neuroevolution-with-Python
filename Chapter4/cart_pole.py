@@ -21,6 +21,9 @@ FOURTHIRDS = 4.0/3.0
 # the number seconds between state updates 
 TAU = 0.02 # sec
 
+# set random seed
+random.seed(42)
+
 def do_step(action, x, x_dot, theta, theta_dot):
     """
     The function to perform the one step of simulation over
@@ -74,25 +77,24 @@ def run_cart_pole_simulation(net, max_bal_steps, random_start=True):
     x, x_dot, theta, theta_dot = 0.0, 0.0, 0.0, 0.0
     if random_start:
         x = random.random() * 4.8 - 2.4 # -2.4 < x < 2.4
-        x_dot = random.random() * 3 - 1.5 # -1.5 < x_dot < 1.5
+        x_dot = (random.random() * 3 - 1.5) / 2.0 # -0.75 < x_dot < 0.75
         theta = random.random() * 0.42 - 0.21 # -0.21 < theta < 0.21
-        theta_dot = random.random() * 4 - 2 # -2 < theta_dot < 2
+        theta_dot = (random.random() * 4 - 2) / 2.0 # -1.0 < theta_dot < 1.0
 
     # Run simulation for specified number of steps while
     # cart-pole system stays within contstraints
-    input = [None] * 5 # the inputs
+    input = [None] * 4 # the inputs
     for steps in range(max_bal_steps):
         # Load scaled inputs
-        input[0] = 1.0  # Bias
-        input[1] = (x + 2.4) / 4.8
-        input[2] = (x_dot + 1.5) / 3
-        input[3] = (theta + 0.21) / .42
-        input[4] = (theta_dot + 2.0) / 4.0
+        input[0] = (x + 2.4) / 4.8
+        input[1] = (x_dot + 1.5) / 3
+        input[2] = (theta + 0.21) / .42
+        input[3] = (theta_dot + 2.0) / 4.0
 
         # Activate the NET
         output = net.activate(input)
         # Make action values discrete
-        action = 0 if output < 0.5 else 1
+        action = 0 if output[0] < 0.5 else 1
 
         # Apply action to the simulated cart-pole
         x, x_dot, theta, theta_dot = do_step(   action = action, 
@@ -124,7 +126,10 @@ def eval_fitness(net, max_bal_steps=500000):
 
     if steps == max_bal_steps:
         # the maximal fitness
-        return 1.0 
+        return 1.0
+    elif steps == 0: # needed to avoid math error when taking log(0)
+        # the minimal fitness
+        return 0.0
     else:
         # we use logarithmic scale because most cart-pole runs fails 
         # too early - within ~100 steps, but we are testing against 
