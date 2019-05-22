@@ -50,7 +50,8 @@ def eval_genomes(genomes, config):
             # special case for particular initial state
             success_runs = evaluate_best_net(net, config, additional_num_runs)
             # adjust fitness
-            fitness = 1.0 - (additional_num_runs - success_runs) / additional_num_runs
+            fitness = 1.0 - (additional_num_runs - success_runs) / \
+                      additional_num_runs
 
         genome.fitness = fitness
 
