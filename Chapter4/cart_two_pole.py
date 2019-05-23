@@ -66,3 +66,98 @@ def calc_step(action, x, x_dot, theta1, theta1_dot, theta2, theta2_dot):
     theta_2_ddot = -0.75 * (x_ddot * cos_theta_2 + g_sin_theta_2 + temp_2) / LENGTH_2
 
     return x_ddot, theta_1_ddot, theta_2_ddot
+
+def outside_bounds(x, theta1, theta2):
+    """
+    Function to test whether cart-2-pole system is outside of the
+    constraints.
+    Arguments:
+        action:     The binary action defining direction of
+                force to be applied.
+        x:          The current cart X position.
+        theta1:      The current angle of the first pole from vertical.
+        theta2:      The current angle of the second pole from vertical.
+    Returns:
+        True if system violated constraints, False - otherwise.
+    """
+    res = x < -2.4 or x > 2.4 or \
+        theta1 < -THIRTY_SIX_DEG_IN_RAD or theta1 > THIRTY_SIX_DEG_IN_RAD or \
+        theta2 < -THIRTY_SIX_DEG_IN_RAD or theta2 > THIRTY_SIX_DEG_IN_RAD
+    return res
+
+#var dydx[6]float64
+#	for i := 0; i < 2; i++ {
+#		dydx[0] = cp.state[1]
+#		dydx[2] = cp.state[3]
+#		dydx[4] = cp.state[5]
+#		cp.step(action, cp.state, &dydx)
+#		cp.rk4(action, cp.state, dydx, &cp.state, TAU)
+#	}
+
+def rk4(f, y, dydx, tau):
+    """
+    The Runge-Kutta fourth order method of numerical approximation of
+    the double-pole-cart system dynamics.
+    Arguments:
+        f:      The current control action 
+        y:      The list with current system state variables 
+                (x, x_dot, theta1, theta1_dot, theta2, theta2_dot)
+        dydx:   The list with derivatives of current state variables
+        tau:    The simulation approximation time step size
+    Returns:
+        The new state of the system as a list
+    """
+    hh = tau / 2.0
+    yt = [None] * 6
+    # update intermediate state
+    for i in range(6):
+        yt[i] = y[i] + hh * dydx[i]
+    # do simulation step
+    x_ddot, theta_1_ddot, theta_2_ddot = calc_step(action = f, 
+                                                x = yt[0], 
+                                                x_dot = yt[1], 
+                                                theta1 = yt[2], 
+                                                theta1_dot = yt[3], 
+                                                theta2 = yt[4], 
+                                                theta2_dot = yt[5])
+    # store derivatives
+    dyt = [yt[1], x_ddot, yt[3], theta_1_ddot, yt[5], theta_2_ddot]
+
+    # update intermediate state 
+    for i in range(6):
+        yt[i] = y[i] + hh * dyt[i]
+
+    # do one simulation step
+    x_ddot, theta_1_ddot, theta_2_ddot = calc_step(action = f, 
+                                                x = yt[0], 
+                                                x_dot = yt[1], 
+                                                theta1 = yt[2], 
+                                                theta1_dot = yt[3], 
+                                                theta2 = yt[4], 
+                                                theta2_dot = yt[5])
+    # store derivatives
+    dym = [yt[1], x_ddot, yt[3], theta_1_ddot, yt[5], theta_2_ddot]
+
+    # update intermediate state
+    for i in range(6):
+        yt[i] = y[i] + tau * dym[i]
+        dym[i] += dyt[i]
+
+    # do one simulation step
+    x_ddot, theta_1_ddot, theta_2_ddot = calc_step(action = f, 
+                                                x = yt[0], 
+                                                x_dot = yt[1], 
+                                                theta1 = yt[2], 
+                                                theta1_dot = yt[3], 
+                                                theta2 = yt[4], 
+                                                theta2_dot = yt[5])
+    # store derivatives
+    dyt = [yt[1], x_ddot, yt[3], theta_1_ddot, yt[5], theta_2_ddot]
+
+    # find system state after approximation
+    yout = [None] * 6
+    h6 = tau / 6.0
+    for i in range(6):
+        yout[i] = y[i] + h6 * (dydx[i] + dyt[i] + 2.0 * dym[i])
+
+    return yout                                                               
