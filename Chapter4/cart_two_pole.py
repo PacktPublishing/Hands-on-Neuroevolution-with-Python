@@ -85,27 +85,17 @@ def outside_bounds(x, theta1, theta2):
         theta2 < -THIRTY_SIX_DEG_IN_RAD or theta2 > THIRTY_SIX_DEG_IN_RAD
     return res
 
-#var dydx[6]float64
-#	for i := 0; i < 2; i++ {
-#		dydx[0] = cp.state[1]
-#		dydx[2] = cp.state[3]
-#		dydx[4] = cp.state[5]
-#		cp.step(action, cp.state, &dydx)
-#		cp.rk4(action, cp.state, dydx, &cp.state, TAU)
-#	}
-
 def rk4(f, y, dydx, tau):
     """
     The Runge-Kutta fourth order method of numerical approximation of
-    the double-pole-cart system dynamics.
+    the double-pole-cart system dynamics. This function will update
+    values in provided list with state variables (y).
     Arguments:
         f:      The current control action 
         y:      The list with current system state variables 
                 (x, x_dot, theta1, theta1_dot, theta2, theta2_dot)
         dydx:   The list with derivatives of current state variables
         tau:    The simulation approximation time step size
-    Returns:
-        The new state of the system as a list
     """
     hh = tau / 2.0
     yt = [None] * 6
@@ -155,9 +145,47 @@ def rk4(f, y, dydx, tau):
     dyt = [yt[1], x_ddot, yt[3], theta_1_ddot, yt[5], theta_2_ddot]
 
     # find system state after approximation
-    yout = [None] * 6
     h6 = tau / 6.0
     for i in range(6):
-        yout[i] = y[i] + h6 * (dydx[i] + dyt[i] + 2.0 * dym[i])
+        y[i] = y[i] + h6 * (dydx[i] + dyt[i] + 2.0 * dym[i])
 
-    return yout                                                               
+def apply_action(action, x, x_dot, theta1, theta1_dot, theta2, theta2_dot, step_number):
+    """
+    Method to apply the control action to the cart-pole simulation.
+    Arguments:
+        action:      The binary action defining direction of
+                        force to be applied.
+        x:           The current cart X position
+        x_dot:       The velocity of the cart
+        theta1:      The current angle of the first pole from vertical
+        theta1_dot:  The angular velocity of the first pole.
+        theta2:      The current angle of the second pole from vertical
+        theta2_dot:  The angular velocity of the second pole.
+        step_number: The current simulation step number
+    Returns:
+        The updated state.
+    """
+    # The simulation time step size
+    TAU = 0.01
+
+    # The control inputs frequency is two times less than simulation
+    # step frequency - hence do two simulation steps
+    state = [x, x_dot, theta1, theta1_dot, theta2, theta2_dot] # the state
+    dydx = [None] * 6 # the state derivatives holder
+    for i in range(2):
+        # copy the state derivatives
+        dydx[0] = state[1] # x_dot
+        dydx[2] = state[3] # theta1_dot
+        dydx[4] = state[5] # theta2_dot
+        # do one simulation step and store derivatives
+        x_ddot, theta_1_ddot, theta_2_ddot = calc_step( action=action, x=x, x_dot=x_dot, 
+                                                        theta1=theta1, theta1_dot=theta1_dot, 
+                                                        theta2=theta2, theta2_dot=theta2_dot)
+        dydx[1] = x_ddot
+        dydx[3] = theta_1_ddot
+        dydx[5] = theta_2_ddot
+        # do Runge-Kutta numerical approximation and update state
+        rk4(f=action, y=state, dydx=dydx, tau=TAU)
+
+    # return the updated state values (x, x_dot, theta1, theta1_dot, theta2, theta2_dot)
+    return state[0], state[1], state[2], state[3], state[4], state[5]
