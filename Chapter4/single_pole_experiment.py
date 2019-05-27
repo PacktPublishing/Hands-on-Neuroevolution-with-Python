@@ -4,7 +4,7 @@
 
 # The Python standard library import
 import os
-import shutil
+
 # The NEAT-Python library imports
 import neat
 # The helper used to visualize experiment results
@@ -12,10 +12,13 @@ import visualize
 # The cart-pole simulator
 import cart_pole as cart
 
+import utils
+
 # The current working directory
 local_dir = os.path.dirname(__file__)
 # The directory to store outputs
 out_dir = os.path.join(local_dir, 'out')
+out_dir = os.path.join(out_dir, 'single_pole')
 
 # The number of additional simulation runs for the winner genome
 additional_num_runs = 100
@@ -37,8 +40,6 @@ def eval_genomes(genomes, config):
                 current generation
         config: The configuration settings with algorithm
                 hyper-parameters
-        n_generations: The numer of generations of evolution
-                process to run
     """
     for genome_id, genome in genomes:
         genome.fitness = 0.0
@@ -121,15 +122,6 @@ def evaluate_best_net(net, config, num_runs):
             return run
     return num_runs
 
-def clean_output():
-    if os.path.isdir(out_dir):
-        # remove files from previous run
-        shutil.rmtree(out_dir)
-
-    # create the output directory
-    os.makedirs(out_dir, exist_ok=False)
-
-
 if __name__ == '__main__':
     # Determine path to configuration file. This path manipulation is
     # here so that the script will run successfully regardless of the
@@ -137,7 +129,7 @@ if __name__ == '__main__':
     config_path = os.path.join(local_dir, 'single_pole_config.ini')
 
     # Clean results of previous run if any or init the ouput directory
-    clean_output()
+    utils.clear_output(out_dir)
 
     # Run the experiment
     run_experiment(config_path)
