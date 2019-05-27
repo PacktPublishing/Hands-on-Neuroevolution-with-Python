@@ -149,18 +149,13 @@ def rk4(f, y, dydx, tau):
     for i in range(6):
         y[i] = y[i] + h6 * (dydx[i] + dyt[i] + 2.0 * dym[i])
 
-def apply_action(action, x, x_dot, theta1, theta1_dot, theta2, theta2_dot, step_number):
+def apply_action(action, state, step_number):
     """
     Method to apply the control action to the cart-pole simulation.
     Arguments:
         action:      The binary action defining direction of
                         force to be applied.
-        x:           The current cart X position
-        x_dot:       The velocity of the cart
-        theta1:      The current angle of the first pole from vertical
-        theta1_dot:  The angular velocity of the first pole.
-        theta2:      The current angle of the second pole from vertical
-        theta2_dot:  The angular velocity of the second pole.
+        state:       The state variables (x, x_dot, theta1, theta1_dot, theta2, theta2_dot) 
         step_number: The current simulation step number
     Returns:
         The updated state.
@@ -170,17 +165,17 @@ def apply_action(action, x, x_dot, theta1, theta1_dot, theta2, theta2_dot, step_
 
     # The control inputs frequency is two times less than simulation
     # step frequency - hence do two simulation steps
-    state = [x, x_dot, theta1, theta1_dot, theta2, theta2_dot] # the state
     dydx = [None] * 6 # the state derivatives holder
-    for i in range(2):
+    for _ in range(2):
         # copy the state derivatives
         dydx[0] = state[1] # x_dot
         dydx[2] = state[3] # theta1_dot
         dydx[4] = state[5] # theta2_dot
         # do one simulation step and store derivatives
-        x_ddot, theta_1_ddot, theta_2_ddot = calc_step( action=action, x=x, x_dot=x_dot, 
-                                                        theta1=theta1, theta1_dot=theta1_dot, 
-                                                        theta2=theta2, theta2_dot=theta2_dot)
+        x_ddot, theta_1_ddot, theta_2_ddot = calc_step( action=action, 
+                                                        x=state[0], x_dot=state[1], 
+                                                        theta1=state[2], theta1_dot=state[3], 
+                                                        theta2=state[4], theta2_dot=state[5] )
         dydx[1] = x_ddot
         dydx[3] = theta_1_ddot
         dydx[5] = theta_2_ddot
@@ -188,4 +183,56 @@ def apply_action(action, x, x_dot, theta1, theta1_dot, theta2, theta2_dot, step_
         rk4(f=action, y=state, dydx=dydx, tau=TAU)
 
     # return the updated state values (x, x_dot, theta1, theta1_dot, theta2, theta2_dot)
-    return state[0], state[1], state[2], state[3], state[4], state[5]
+    return state
+
+def run_markov_simulation(net, max_bal_steps=100000):
+    """
+    The function to run cart-two-pole apparatus simulation for a
+    certain number of time steps as maximum.
+    Arguments:
+        net: The ANN of the phenotype to be evaluated.
+        max_bal_steps: The maximum nubmer of time steps to
+            execute simulation.
+    Returns:
+        the number of steps that the control ANN was able to
+        maintain the single-pole balancer in stable state.
+    """
+    # Run simulation for specified number of steps while
+    # cart-pole system stays within contstraints
+    input = [None] * 6 # the inputs
+    state = reset_state([None] * 6)
+    for steps in range(max_bal_steps):
+        # scale inputs
+        input[0] = (state[0] + 2.4) / 4.8
+        input[1] = (state[1] + 1.5) / 3.0
+        input[2] = (state[2] + THIRTY_SIX_DEG_IN_RAD) / (THIRTY_SIX_DEG_IN_RAD * 2.0)
+        input[3] = (state[3] + 2.0) / 4.0
+        input[4] = (state[4] + THIRTY_SIX_DEG_IN_RAD) / (THIRTY_SIX_DEG_IN_RAD * 2.0)
+        input[5] = (state[5] + 2.0) / 4.0
+
+        # Activate the NET
+        output = net.activate(input)
+        # Make action values discrete
+        action = 0 if output[0] < 0.5 else 1
+
+        # Apply action to the simulated cart-two-pole
+        state = apply_action(action=action, state=state, step_number=steps)
+
+        # check if simulation still within bounds
+        if outside_bounds(x=state[0], theta1=state[2], theta2=state[4]):
+            return steps
+
+    return max_bal_steps
+
+
+def reset_state(state):
+    """
+    The function to reset state array to initial values.
+    Arguments:
+        state: the array with state variables.
+    Returns:
+        The state array with values set to initial ones.
+    """
+    state[0], state[1], state[3], state[4], state[5] = 0, 0, 0, 0, 0
+    state[2] = math.pi / 180.0 # the one_degree
+    return state
