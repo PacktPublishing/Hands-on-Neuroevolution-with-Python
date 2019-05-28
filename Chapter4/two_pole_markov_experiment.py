@@ -15,11 +15,18 @@ import visualize
 # The cart-2-pole simulator
 import cart_two_pole as cart
 
+import utils
+
 # The current working directory
 local_dir = os.path.dirname(__file__)
 # The directory to store outputs
 out_dir = os.path.join(local_dir, 'out')
+out_dir = os.path.join(out_dir, 'two_pole_markov')
 
+# The number of additional simulation runs for the winner genome
+additional_num_runs = 10
+# The number os steps in additional simulation runs
+additional_steps = 2000
 
 def eval_fitness(net, max_bal_steps=100000):
     """
@@ -74,3 +81,80 @@ def eval_genomes(genomes, config):
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         fitness = eval_fitness(net)
         
+def run_experiment(config_file, n_generations=100):
+    """
+    The function to run XOR experiment against hyper-parameters 
+    defined in the provided configuration file.
+    The winner genome will be rendered as a graph as well as the
+    important statistics of neuroevolution process execution.
+    Arguments:
+        config_file: the path to the file with experiment 
+                    configuration
+    """
+    # Load configuration.
+    config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                         neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                         config_file)
+
+    # Create the population, which is the top-level object for a NEAT run.
+    p = neat.Population(config)
+
+    # Add a stdout reporter to show progress in the terminal.
+    p.add_reporter(neat.StdOutReporter(True))
+    stats = neat.StatisticsReporter()
+    p.add_reporter(stats)
+    p.add_reporter(neat.Checkpointer(5, filename_prefix='out/tpbm-neat-checkpoint-'))
+
+    # Run for up to N generations.
+    best_genome = p.run(eval_genomes, n=n_generations)
+
+    # Display the best genome among generations.
+    print('\nBest genome:\n{!s}'.format(best_genome))
+
+    # Check if the best genome is a winning Double-Pole-Markov balancing controller 
+    net = neat.nn.FeedForwardNetwork.create(best_genome, config)
+    print("\n\nEvaluating the best genome in random runs")
+    success_runs = evaluate_best_net(net, config, additional_num_runs)
+    print("Runs successful/expected: %d/%d" % (success_runs, additional_num_runs))
+    if success_runs == additional_num_runs:
+        print("SUCCESS: The stable Double-Pole-Markov balancing controller found!!!")
+    else:
+        print("FAILURE: Failed to find the stable Double-Pole-Markov balancing controller!!!")
+
+    # Visualize the experiment results
+    node_names = {-1:'x', -2:'dot_x', -3:'θ_1', -4:'dot_θ_1', -5:'θ_2', -6:'dot_θ_2', 0:'action'}
+    visualize.draw_net(config, best_genome, True, node_names=node_names, directory=out_dir, fmt='png')
+    visualize.plot_stats(stats, ylog=False, view=True, filename=os.path.join(out_dir, 'avg_fitness.svg'))
+    visualize.plot_species(stats, view=True, filename=os.path.join(out_dir, 'speciation.svg'))
+
+def evaluate_best_net(net, config, num_runs):
+    """
+    The function to evaluate the ANN of the best genome in
+    specified number of sequetial runs. It is aimed to test it
+    against various random initial states that checks if it is
+    implementing stable control strategy or just a special case
+    for particular initial state.
+    Arguments:
+        net:        The ANN to evaluate
+        config:     The hyper-parameters configuration
+        num_runs:   The number of sequential runs
+    Returns:
+        The number of succesful runs 
+    """
+    for run in range(num_runs):
+        fitness = eval_fitness(net, max_bal_steps=additional_steps)
+        if fitness < config.fitness_threshold:
+            return run
+    return num_runs
+
+if __name__ == '__main__':
+    # Determine path to configuration file. This path manipulation is
+    # here so that the script will run successfully regardless of the
+    # current working directory.
+    config_path = os.path.join(local_dir, 'two_pole_markov_config.ini')
+
+    # Clean results of previous run if any or init the ouput directory
+    utils.clear_output(out_dir)
+
+    # Run the experiment
+    run_experiment(config_path, n_generations=2)
