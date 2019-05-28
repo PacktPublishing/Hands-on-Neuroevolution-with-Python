@@ -157,4 +157,4 @@ if __name__ == '__main__':
     utils.clear_output(out_dir)
 
     # Run the experiment
-    run_experiment(config_path, n_generations=2)
+    run_experiment(config_path, n_generations=100)
