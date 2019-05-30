@@ -13,10 +13,10 @@ MASS_CART = 1.0 # kg
 FORCE_MAG = 10.0 # N
 # The first pole
 MASS_POLE_1 = 1.0 # kg
-LENGTH_1 = 0.5  # m - actually half the first pole's length
+LENGTH_1 = 1.0 / 2.0  # m - actually half the first pole's length
 # The second pole
 MASS_POLE_2 = 0.1 # kg
-LENGTH_2 = 0.05 # m - actually half the second pole's length
+LENGTH_2 = 0.1 / 2.0 # m - actually half the second pole's length
 # The coefficient of friction of pivot of the pole
 MUP = 0.000002
 
@@ -41,7 +41,7 @@ def calc_step(action, x, x_dot, theta1, theta1_dot, theta2, theta2_dot):
         accelerations of both poles.
     """
     # Find the input force direction
-    force = (action - 0.5) * FORCE_MAG * 2.0 # action has binary values
+    force = -FORCE_MAG if action == 0 else FORCE_MAG # action has binary values
     # Calculate projections of forces for the poles
     cos_theta_1     = math.cos(theta1)
     sin_theta_1     = math.sin(theta1)
