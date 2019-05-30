@@ -171,8 +171,8 @@ if __name__ == '__main__':
     utils.clear_output(out_dir)
 
     # Run the experiment
-    pole_length = [0.1]# [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-    num_runs = 10#len(pole_length)
+    pole_length = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    num_runs = len(pole_length)
     for i in range(num_runs):
         cart.LENGTH_2 = pole_length[i] / 2.0
         solved = run_experiment(config_path, n_generations=100, silent=False)
