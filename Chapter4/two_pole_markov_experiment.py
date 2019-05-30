@@ -8,6 +8,8 @@
 import os
 import shutil
 import math
+import random
+import time
 # The NEAT-Python library imports
 import neat
 # The helper used to visualize experiment results
@@ -79,9 +81,10 @@ def eval_genomes(genomes, config):
     for genome_id, genome in genomes:
         genome.fitness = 0.0
         net = neat.nn.FeedForwardNetwork.create(genome, config)
-        fitness = eval_fitness(net)
+        # net = neat.nn.recurrent.RecurrentNetwork.create(genome, config)
+        genome.fitness = eval_fitness(net)
         
-def run_experiment(config_file, n_generations=100):
+def run_experiment(config_file, n_generations=100, silent=False):
     """
     The function to run XOR experiment against hyper-parameters 
     defined in the provided configuration file.
@@ -90,7 +93,13 @@ def run_experiment(config_file, n_generations=100):
     Arguments:
         config_file: the path to the file with experiment 
                     configuration
+    Returns:
+        True if experiment finished with successful solver found. 
     """
+    # set random seed
+    seed = 1559231616#int(time.time())#
+    random.seed(seed)
+
     # Load configuration.
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                          neat.DefaultSpeciesSet, neat.DefaultStagnation,
@@ -121,11 +130,16 @@ def run_experiment(config_file, n_generations=100):
     else:
         print("FAILURE: Failed to find the stable Double-Pole-Markov balancing controller!!!")
 
+    print("Random seed:", seed)
+
     # Visualize the experiment results
-    node_names = {-1:'x', -2:'dot_x', -3:'θ_1', -4:'dot_θ_1', -5:'θ_2', -6:'dot_θ_2', 0:'action'}
-    visualize.draw_net(config, best_genome, True, node_names=node_names, directory=out_dir, fmt='png')
-    visualize.plot_stats(stats, ylog=False, view=True, filename=os.path.join(out_dir, 'avg_fitness.svg'))
-    visualize.plot_species(stats, view=True, filename=os.path.join(out_dir, 'speciation.svg'))
+    if not silent:
+        node_names = {-1:'x', -2:'dot_x', -3:'θ_1', -4:'dot_θ_1', -5:'θ_2', -6:'dot_θ_2', 0:'action'}
+        visualize.draw_net(config, best_genome, True, node_names=node_names, directory=out_dir, fmt='png')
+        visualize.plot_stats(stats, ylog=False, view=True, filename=os.path.join(out_dir, 'avg_fitness.svg'))
+        visualize.plot_species(stats, view=True, filename=os.path.join(out_dir, 'speciation.svg'))
+    
+    return success_runs == additional_num_runs
 
 def evaluate_best_net(net, config, num_runs):
     """
@@ -157,4 +171,13 @@ if __name__ == '__main__':
     utils.clear_output(out_dir)
 
     # Run the experiment
-    run_experiment(config_path, n_generations=100)
+    pole_length = [0.1]# [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    num_runs = 10#len(pole_length)
+    for i in range(num_runs):
+        cart.LENGTH_2 = pole_length[i] / 2.0
+        solved = run_experiment(config_path, n_generations=100, silent=False)
+        print("run: %d, solved: %s, length: %f" % (i + 1, solved, cart.LENGTH_2))
+        if solved:
+            print("Solution found in: %d run, short pole length: %f" % (i + 1, cart.LENGTH_2))
+            break
+        
