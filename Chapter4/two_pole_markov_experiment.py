@@ -133,7 +133,7 @@ def run_experiment(config_file, n_generations=100, silent=False):
     print("Random seed:", seed)
 
     # Visualize the experiment results
-    if not silent:
+    if not silent or success_runs == additional_num_runs:
         node_names = {-1:'x', -2:'dot_x', -3:'θ_1', -4:'dot_θ_1', -5:'θ_2', -6:'dot_θ_2', 0:'action'}
         visualize.draw_net(config, best_genome, True, node_names=node_names, directory=out_dir, fmt='svg')
         visualize.plot_stats(stats, ylog=False, view=True, filename=os.path.join(out_dir, 'avg_fitness.svg'))
