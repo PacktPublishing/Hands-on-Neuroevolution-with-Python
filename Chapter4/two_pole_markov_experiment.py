@@ -26,9 +26,9 @@ out_dir = os.path.join(local_dir, 'out')
 out_dir = os.path.join(out_dir, 'two_pole_markov')
 
 # The number of additional simulation runs for the winner genome
-additional_num_runs = 10
+additional_num_runs = 1
 # The number os steps in additional simulation runs
-additional_steps = 2000
+additional_steps = 100000
 
 def eval_fitness(net, max_bal_steps=100000):
     """
@@ -175,7 +175,7 @@ if __name__ == '__main__':
     num_runs = len(pole_length)
     for i in range(num_runs):
         cart.LENGTH_2 = pole_length[i] / 2.0
-        solved = run_experiment(config_path, n_generations=100, silent=False)
+        solved = run_experiment(config_path, n_generations=100, silent=True)
         print("run: %d, solved: %s, half-length: %f" % (i + 1, solved, cart.LENGTH_2))
         if solved:
             print("Solution found in: %d run, short pole length: %f" % (i + 1, pole_length[i]))
