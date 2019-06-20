@@ -1,6 +1,5 @@
 #
-# This file provides source code of maze environment used in the maze navigation
-# experiment. Here we define common geometric primitives along with utilities
+# Here we define common geometric primitives along with utilities
 # allowing to find distance from point to the line, to find intersection point
 # of two lines, and to find the length of the line in two dimensional Euclidean 
 # space.
