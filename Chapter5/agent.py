@@ -6,22 +6,23 @@ class Agent:
     """
     This is the maze navigating agent
     """
-    def __init__(self, heading=0, speed=0, angular_vel=0, radius=8.0, range_finder_det_range=100.0):
+    def __init__(self, location, heading=0, speed=0, angular_vel=0, radius=8.0, range_finder_range=100.0):
         """
         Creates new Agent with specified parameters.
         Arguments:
-            heading: The heading direction in degrees.
-            speed: The linear velocity of the agent.
-            angular_vel: The angular velocity of the agent.
-            radius: The agent's body radius.
-            range_finder_det_range: The maximal detection range for range finder sensors.
+            location:               The agent initial position within maze
+            heading:                The heading direction in degrees.
+            speed:                  The linear velocity of the agent.
+            angular_vel:            The angular velocity of the agent.
+            radius:                 The agent's body radius.
+            range_finder_range:     The maximal detection range for range finder sensors.
         """
         self.heading = heading
         self.speed = speed
         self.angular_vel = angular_vel
         self.radius = radius
-        self.range_finder_det_range = range_finder_det_range
-        self.location = None
+        self.range_finder_range = range_finder_range
+        self.location = location
 
         # defining the range finder sensors
         self.range_finder_angles = [-90.0, -45.0, 0.0, 45.0, 90.0, -180.0]
