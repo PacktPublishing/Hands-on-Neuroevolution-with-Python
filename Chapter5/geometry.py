@@ -7,6 +7,16 @@
 
 import math
 
+def deg_to_rad(degrees):
+    """
+    The function to convert degrees to radians.
+    Arguments:
+        degrees: The angle in degrees to be converted.
+    Returns:
+        The degrees converted to radians.
+    """
+    return degrees / 180.0 * math.pi
+
 class Point:
     """
     The basic class describing point in the two dimensional Cartesian coordinate
@@ -39,7 +49,7 @@ class Point:
             angle: The rotation angle (degrees)
             point: The point - center of rotation
         """
-        rad = angle / 180.0 * math.pi
+        rad = deg_to_rad(angle)
         # translate to have another point at the center of coordinates
         self.x -= point.x
         self.y -= point.y
