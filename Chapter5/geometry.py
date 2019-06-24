@@ -17,6 +17,34 @@ def deg_to_rad(degrees):
     """
     return degrees / 180.0 * math.pi
 
+def read_point(str):
+    """
+    The function to read Point from specified string. The point
+    coordinates are in order (x, y) and delimited by space.
+    Arguments:
+        str: The string encoding Point coorinates.
+    Returns:
+        The Point with coordinates parsed from provided string.
+    """
+    coords = str.split(' ')
+    assert len(coords) == 2
+    return Point(float(coords[0]), float(coords[1]))
+
+def read_line(str):
+    """
+    The function to read line segment from provided string. The coordinates
+    of line end points are in order: x1, y1, x2, y2 and delimited by spaces.
+    Arguments:
+        str: The string to read line coordinates from.
+    Returns:
+        The parsed line segment.
+    """
+    coords = str.split(' ')
+    assert len(coords) == 4
+    a = Point(float(coords[0]), float(coords[1]))
+    b = Point(float(coords[2]), float(coords[3]))
+    return Line(a, b)
+
 class Point:
     """
     The basic class describing point in the two dimensional Cartesian coordinate
@@ -72,7 +100,13 @@ class Point:
         dx = self.x - point.x
         dy = self.y - point.y
 
-        return math.sqrt(dx*dx - dy*dy)
+        return math.sqrt(dx*dx + dy*dy)
+    
+    def __str__(self):
+        """
+        Returns the nicely formatted string representation of this point.
+        """
+        return "Point (%.1f, %.1f)" % (self.x, self.y)
 
 class Line:
     """
@@ -162,3 +196,9 @@ class Line:
             The length of this line segment as distance between its endpoints.
         """
         return self.a.distance(self.b) 
+
+    def __str__(self):
+        """
+        Returns the nicely formatted string representation of this line.
+        """
+        return "Line (%.1f, %.1f) -> (%.1f, %.1f)" % (self.a.x, self.a.y, self.b.x, self.b.y)
