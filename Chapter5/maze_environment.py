@@ -28,12 +28,16 @@ class Environment:
         self.walls = walls
         self.exit_point = exit_point
         self.exit_range = exit_range
-        # The maze navigating путе
+        # The maze navigating agent
         self.agent = agent
         # The flag to indicate if exit was found
         self.exit_found = False
         # The initial distance of agent from exit
         self.initial_distane = self.agent_distance_to_exit()
+
+        # Update sensors
+        self.update_rangefinder_sensors()
+        self.update_radars()
 
     def agent_distance_to_exit(self):
         """
@@ -195,4 +199,59 @@ class Environment:
         # check if agent reached exit point
         dist = self.agent_distance_to_exit()
         self.exit_found = (dist < self.exit_range)
-            
+
+    def __str__(self):
+        """
+        Returns the nicely formatted string representation of this environment.
+        """
+        str = "MAZE\nAgent at: (%.1f, %.1f)" % (self.agent.location.x, self.agent.location.y)
+        str += "\nExit  at: (%.1f, %.1f), exit range: %.1f" % (self.exit_point.x, self.exit_point.y, self.exit_range)
+        str += "\nWalls [%d]" % len(self.walls)
+        for w in self.walls:
+            str += "\n\t%s" % w
+        
+        return str
+
+def read_environment(file_path):
+    """
+    The function to read maze environment configuration from provided
+    file.
+    Arguments:
+        file_path: The path to the file to read maze configuration from.
+    Returns:
+        The initialized maze environment.
+    """
+    num_lines, index = 0, 0
+    walls = []
+    maze_agent, maze_exit = None, None
+    with open(file_path, 'r') as file:
+        for line in file.readlines():
+            line = line.strip()
+            if len(line) == 0:
+                # skip empty lines
+                continue
+
+            if index == 0:
+                # read the number of line segments
+                num_lines = int(line)
+            elif index == 1:
+                # read the agent's position
+                loc = geometry.read_point(line)
+                maze_agent = agent.Agent(location=loc)
+            elif index == 2:
+                # read the agent's initial heading
+                maze_agent.heading = float(line)
+            elif index == 3:
+                # read the maze exit location
+                maze_exit = geometry.read_point(line)
+            else:
+                # read the walls
+                wall = geometry.read_line(line)
+                walls.append(wall)
+
+            # increment cursor
+            index += 1
+
+    assert len(walls) == num_lines
+    # create and return the maze environment
+    return Environment(agent=maze_agent, walls=walls, exit_point=maze_exit)             
