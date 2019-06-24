@@ -1,6 +1,7 @@
 #
 # This is the definition of a maze navigating agent.
 #
+import pickle
 
 class Agent:
     """
@@ -34,3 +35,56 @@ class Agent:
         self.range_finders = [None] * len(self.range_finder_angles)
         # the list to hold pie-slice radar activations
         self.radar = [None] * len(self.radar_angles)
+
+class AgenRecord:
+    """
+    The class to hold results of maze navigation simulation for specific
+    solver agent. It provides all statistics about the agent at the end
+    of navigation run.
+    """
+    def __init__(self, generation, agent_id):
+        """
+        Creates new record for specific agent at the specific generation
+        of the evolutionary process.
+        """
+        self.generation = generation
+        self.agent_id = agent_id
+        # initialize agent's properties
+        self.x = -1
+        self.y = -1
+        self.fitness = -1
+        # The flag to indicate whether this agent was able to find maze exit
+        self.hit_exit = False
+        # The ID of species this agent belongs to
+        self.species_id = -1
+        # The age of agent's species at the time of recording
+        self.species_age = -1
+
+class RecordStore:
+    """
+    The class to control agents record store.
+    """
+    def __init__(self):
+        """
+        Creates new instance.
+        """
+        self.records = []
+
+    def load(self, file):
+        """
+        The function to load records list from the specied file into this class.
+        Arguments:
+            file: The path to the file to read agents records from.
+        """
+        with open(file, 'rb') as dump_file:
+            self.records = pickle.load(dump_file)
+
+    def dump(self, file):
+        """
+        The function to dump records list to the specified file from this class.
+        Arguments:
+            file: The path to the file to hold data dump.
+        """
+        with open(file, 'wb') as dump_file:
+            pickle.dump(self.records, dump_file)
+    
