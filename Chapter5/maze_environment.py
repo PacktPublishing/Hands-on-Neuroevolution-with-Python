@@ -199,6 +199,7 @@ class Environment:
         # check if agent reached exit point
         dist = self.agent_distance_to_exit()
         self.exit_found = (dist < self.exit_range)
+        return self.exit_found
 
     def __str__(self):
         """
@@ -254,4 +255,53 @@ def read_environment(file_path):
 
     assert len(walls) == num_lines
     # create and return the maze environment
-    return Environment(agent=maze_agent, walls=walls, exit_point=maze_exit)             
+    return Environment(agent=maze_agent, walls=walls, exit_point=maze_exit)
+
+def maze_simulation_evaluate(env, net, time_steps, agent_record):
+    """
+    The function to evaluate maze simulation for specific environment
+    and controll ANN provided. The results will be saved into provided
+    agent record holder.
+    Arguments:
+        env: The maze configuration environment.
+        net: The maze solver agent's control ANN.
+        time_steps: The number of time steps for maze simulation.
+        agent_record: The holder to save simulation results to.
+    """
+    for i in range(time_steps):
+        if maze_simulation_step(env, net):
+            print("Maze solved in %d steps" % (i + 1))
+            break
+        
+    # Calculate the fitness score based on distance from exit
+    fitness = env.agent_distance_to_exit()
+    # Normalize fitness score to range (0,1]
+    fitness = (env.initial_distane - fitness) / env.initial_distane
+    if fitness <= 0:
+        fitness = 0.01
+
+    # Store simulation results into the agent record
+    if agent_record is not None:
+        agent_record.fitness = fitness
+        agent_record.x = env.agent.location.x
+        agent_record.y = env.agent.location.y
+        agent_record.hit_exit = env.exit_found
+
+    return fitness
+
+
+def maze_simulation_step(env, net):
+    """
+    The function to perform one step of maze simulation.
+    Arguments:
+        env: The maze configuration environment.
+        net: The maze solver agent's control ANN
+    Returns:
+        The True if maze agent solved the maze.
+    """
+    # create inputs from the current state of the environment
+    inputs = env.create_net_inputs()
+    # load inputs into controll ANN and get results
+    output = net.activate(inputs)
+    # apply control signal to the environment and update
+    return env.update(output)
