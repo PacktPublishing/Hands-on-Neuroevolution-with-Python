@@ -161,10 +161,13 @@ class Environment:
         The function to run the one time step of the simulation.
         Arguments:
             control_signals: The control signals received from the control ANN
+        Returns:
+            The True if maze exit was found after update or maze exit was already
+            found in previous simulation cycles.
         """
         if self.exit_found:
             # Maze exit already found
-            return
+            return True
 
         # Apply control signals
         self.apply_control_signals(control_signals)
@@ -185,8 +188,8 @@ class Environment:
 
         # find the next location of the agent
         new_loc = geometry.Point(
-            x = self.agent.x + vx, 
-            y = self.agent.y + vy
+            x = self.agent.location.x + vx, 
+            y = self.agent.location.y + vy
         )
 
         if not self.test_wall_collision(new_loc):
@@ -222,7 +225,7 @@ def read_environment(file_path):
     Returns:
         The initialized maze environment.
     """
-    num_lines, index = 0, 0
+    num_lines, index = -1, 0
     walls = []
     maze_agent, maze_exit = None, None
     with open(file_path, 'r') as file:
@@ -254,10 +257,12 @@ def read_environment(file_path):
             index += 1
 
     assert len(walls) == num_lines
+
+    print("Maze environment configured successfully from file: %s" % file_path)
     # create and return the maze environment
     return Environment(agent=maze_agent, walls=walls, exit_point=maze_exit)
 
-def maze_simulation_evaluate(env, net, time_steps, agent_record):
+def maze_simulation_evaluate(env, net, time_steps):
     """
     The function to evaluate maze simulation for specific environment
     and controll ANN provided. The results will be saved into provided
@@ -266,12 +271,11 @@ def maze_simulation_evaluate(env, net, time_steps, agent_record):
         env: The maze configuration environment.
         net: The maze solver agent's control ANN.
         time_steps: The number of time steps for maze simulation.
-        agent_record: The holder to save simulation results to.
     """
     for i in range(time_steps):
         if maze_simulation_step(env, net):
             print("Maze solved in %d steps" % (i + 1))
-            break
+            return 1.0
         
     # Calculate the fitness score based on distance from exit
     fitness = env.agent_distance_to_exit()
@@ -279,13 +283,6 @@ def maze_simulation_evaluate(env, net, time_steps, agent_record):
     fitness = (env.initial_distane - fitness) / env.initial_distane
     if fitness <= 0:
         fitness = 0.01
-
-    # Store simulation results into the agent record
-    if agent_record is not None:
-        agent_record.fitness = fitness
-        agent_record.x = env.agent.location.x
-        agent_record.y = env.agent.location.y
-        agent_record.hit_exit = env.exit_found
 
     return fitness
 
