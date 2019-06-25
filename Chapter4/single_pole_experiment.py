@@ -28,13 +28,7 @@ additional_steps = 200
 def eval_genomes(genomes, config):
     """
     The function to evaluate the fitness of each genome in 
-    the genomes list. 
-    The provided configuration is used to create feed-forward 
-    neural network from each genome and after that created
-    the neural network evaluated in its ability to solve
-    XOR problem. As a result of this function execution, the
-    the fitness score of each genome updated to the newly
-    evaluated one.
+    the genomes list.
     Arguments:
         genomes: The list of genomes from population in the 
                 current generation
@@ -58,7 +52,7 @@ def eval_genomes(genomes, config):
 
 def run_experiment(config_file, n_generations=100):
     """
-    The function to run XOR experiment against hyper-parameters 
+    The function to run the experiment against hyper-parameters 
     defined in the provided configuration file.
     The winner genome will be rendered as a graph as well as the
     important statistics of neuroevolution process execution.

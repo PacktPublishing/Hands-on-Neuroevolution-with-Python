@@ -79,7 +79,7 @@ def eval_genomes(genomes, config):
         
 def run_experiment(config_file, n_generations=100, silent=False):
     """
-    The function to run XOR experiment against hyper-parameters 
+    The function to run the experiment against hyper-parameters 
     defined in the provided configuration file.
     The winner genome will be rendered as a graph as well as the
     important statistics of neuroevolution process execution.
