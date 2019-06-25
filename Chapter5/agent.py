@@ -70,6 +70,14 @@ class RecordStore:
         """
         self.records = []
 
+    def add_record(self, record):
+        """
+        The function to add specified record to this store.
+        Arguments:
+            record: The record to be added.
+        """
+        self.records.append(record)
+
     def load(self, file):
         """
         The function to load records list from the specied file into this class.
