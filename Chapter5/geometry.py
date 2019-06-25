@@ -170,7 +170,7 @@ class Line:
         Returns:
             The distance between given point and this line.
         """
-        utop = (p.x - self.a.x) * (self.b.x - self.a.x) + (p.Y - self.a.y) * (self.b.y - self.a.y)
+        utop = (p.x - self.a.x) * (self.b.x - self.a.x) + (p.y - self.a.y) * (self.b.y - self.a.y)
         ubot = self.a.distance(self.b)
         ubot *= ubot
         if ubot == 0.0:
