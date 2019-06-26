@@ -114,7 +114,7 @@ def run_experiment(config_file, maze_env, trial_out_dir, n_generations=100, sile
         True if experiment finished with successful solver found. 
     """
     # set random seed
-    seed = 42#int(time.time())#
+    seed = int(time.time())#42#
     random.seed(seed)
 
     # Load configuration.
