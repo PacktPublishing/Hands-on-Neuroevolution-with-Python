@@ -304,7 +304,7 @@ if __name__ == '__main__':
     maze_env = maze.read_environment(maze_env_config)
 
     # read agents records
-    rs = agent.RecordStore()
+    rs = agent.AgentRecordStore()
     rs.load(args.records)
 
     # render visualization

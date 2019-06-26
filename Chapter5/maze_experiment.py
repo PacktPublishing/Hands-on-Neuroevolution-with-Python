@@ -42,7 +42,7 @@ class MazeSimulationTrial:
         # The initial maze simulation environment
         self.orig_maze_environment = maze_env
         # The record store for evaluated maze solver agents
-        self.record_store = agent.RecordStore()
+        self.record_store = agent.AgentRecordStore()
         # The NEAT population object
         self.population = population
 
@@ -136,10 +136,13 @@ def run_experiment(config_file, maze_env, trial_out_dir, n_generations=100, sile
     p.add_reporter(neat.Checkpointer(5, filename_prefix='%s/maze-neat-checkpoint-' % trial_out_dir))
 
     # Run for up to N generations.
+    start_time = time.time()
     best_genome = p.run(eval_genomes, n=n_generations)
 
+    elapsed_time = time.time() - start_time
+
     # Display the best genome among generations.
-    print('\nBest genome:\n{!s}'.format(best_genome))
+    print('\nBest genome:\n%s' % (best_genome))
 
     solution_found = (best_genome.fitness >= config.fitness_threshold)
     if solution_found:
@@ -150,9 +153,10 @@ def run_experiment(config_file, maze_env, trial_out_dir, n_generations=100, sile
     # write the record store data
     rs_file = os.path.join(trial_out_dir, "data.pickle")
     trialSim.record_store.dump(rs_file)
-    print("Record store file: %s" % rs_file)
 
+    print("Record store file: %s" % rs_file)
     print("Random seed:", seed)
+    print("Trial elapsed time: %.3f sec" % (elapsed_time))
 
     # Visualize the experiment results
     if not silent or solution_found:
@@ -171,7 +175,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="The maze experiment runner.")
     parser.add_argument('-m', '--maze', default='medium', 
                         help='The maze configuration to use.')
-    parser.add_argument('-g', '--generations', default=100, type=int, 
+    parser.add_argument('-g', '--generations', default=500, type=int, 
                         help='The number of generations for the evolutionary process.')
     args = parser.parse_args()
 

@@ -60,7 +60,7 @@ class AgenRecord:
         # The age of agent's species at the time of recording
         self.species_age = -1
 
-class RecordStore:
+class AgentRecordStore:
     """
     The class to control agents record store.
     """

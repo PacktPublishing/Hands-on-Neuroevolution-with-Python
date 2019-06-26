@@ -12,7 +12,7 @@ import geometry
 # The maximal allowed speed for the maze solver agent
 MAX_AGENT_SPEED = 3.0
 
-class Environment:
+class MazeEnvironment:
     """
     This class encapsulates the maze simulation environment.
     """
@@ -33,7 +33,7 @@ class Environment:
         # The flag to indicate if exit was found
         self.exit_found = False
         # The initial distance of agent from exit
-        self.initial_distane = self.agent_distance_to_exit()
+        self.initial_distance = self.agent_distance_to_exit()
 
         # Update sensors
         self.update_rangefinder_sensors()
@@ -114,7 +114,7 @@ class Environment:
                 y = self.agent.location.y + math.sin(rad) * self.agent.range_finder_range
             )
             # rotate the projection point by the agent's heading angle to
-            # aling it with heading direction
+            # align it with heading direction
             projection_point.rotate(self.agent.heading, self.agent.location)
             # create the line segment from the agent location to the projected point
             projection_line = geometry.Line(
@@ -260,7 +260,7 @@ def read_environment(file_path):
 
     print("Maze environment configured successfully from file: %s" % file_path)
     # create and return the maze environment
-    return Environment(agent=maze_agent, walls=walls, exit_point=maze_exit)
+    return MazeEnvironment(agent=maze_agent, walls=walls, exit_point=maze_exit)
 
 def maze_simulation_evaluate(env, net, time_steps):
     """
@@ -280,7 +280,7 @@ def maze_simulation_evaluate(env, net, time_steps):
     # Calculate the fitness score based on distance from exit
     fitness = env.agent_distance_to_exit()
     # Normalize fitness score to range (0,1]
-    fitness = (env.initial_distane - fitness) / env.initial_distane
+    fitness = (env.initial_distance - fitness) / env.initial_distance
     if fitness <= 0:
         fitness = 0.01
 
