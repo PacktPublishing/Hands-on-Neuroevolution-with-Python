@@ -258,7 +258,7 @@ def read_environment(file_path):
 
     assert len(walls) == num_lines
 
-    print("Maze environment configured successfully from file: %s" % file_path)
+    print("Maze environment configured successfully from the file: %s" % file_path)
     # create and return the maze environment
     return MazeEnvironment(agent=maze_agent, walls=walls, exit_point=maze_exit)
 
