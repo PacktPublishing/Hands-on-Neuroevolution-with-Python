@@ -142,7 +142,7 @@ class MazeEnvironment:
         The function to update the agent radar sensors.
         """
         target = geometry.Point(self.exit_point.x, self.exit_point.y)
-        # rotate target with respect to the agent's heading to aling it with heading direction
+        # rotate target with respect to the agent's heading to align it with heading direction
         target.rotate(self.agent.heading, self.agent.location)
         # translate with respect to the agent's location
         target.x -= self.agent.location.x
@@ -158,7 +158,8 @@ class MazeEnvironment:
 
     def update(self, control_signals):
         """
-        The function to run the one time step of the simulation.
+        The function to update solver agent position within maze. After agent position
+        updated it will be checked to find out if maze exit was reached afetr that.
         Arguments:
             control_signals: The control signals received from the control ANN
         Returns:
@@ -200,8 +201,8 @@ class MazeEnvironment:
         self.update_radars()
 
         # check if agent reached exit point
-        dist = self.agent_distance_to_exit()
-        self.exit_found = (dist < self.exit_range)
+        distance = self.agent_distance_to_exit()
+        self.exit_found = (distance < self.exit_range)
         return self.exit_found
 
     def __str__(self):
