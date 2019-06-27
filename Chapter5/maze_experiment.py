@@ -97,7 +97,7 @@ def eval_genomes(genomes, config):
     for genome_id, genome in genomes:
         genome.fitness = eval_fitness(genome_id, genome, config)
 
-def run_experiment(config_file, maze_env, trial_out_dir, n_generations=100, silent=False):
+def run_experiment(config_file, maze_env, trial_out_dir, args=None, n_generations=100, silent=False):
     """
     The function to run the experiment against hyper-parameters 
     defined in the provided configuration file.
@@ -110,6 +110,7 @@ def run_experiment(config_file, maze_env, trial_out_dir, n_generations=100, sile
         n_generations:  The number of generations to execute.
         silent:         If True than no intermediary outputs will be
                         presented until solution is found.
+        args:           The command line arguments holder.
     Returns:
         True if experiment finished with successful solver found. 
     """
@@ -163,8 +164,15 @@ def run_experiment(config_file, maze_env, trial_out_dir, n_generations=100, sile
         node_names =   {-1:'RF_R', -2:'RF_FR', -3:'RF_F', -4:'RF_FL', -5:'RF_L', -6: 'RF_B', 
                         -7:'RAD_F', -8:'RAD_L', -9:'RAD_B', -10:'RAD_R', 
                         0:'ANG_VEL', 1:'VEL'}
-        visualize.draw_net(config, best_genome, True, node_names=node_names, directory=trial_out_dir, fmt='png')
-        visualize.draw_maze_records(maze_env, trialSim.record_store.records, view=True, filename=os.path.join(trial_out_dir, 'maze_records.svg'))
+        visualize.draw_net(config, best_genome, True, node_names=node_names, directory=trial_out_dir, fmt='svg')
+        if args is None:
+            visualize.draw_maze_records(maze_env, trialSim.record_store.records, view=True)
+        else:
+            visualize.draw_maze_records(maze_env, trialSim.record_store.records, 
+                                        view=True, 
+                                        width=args.width,
+                                        height=args.height,
+                                        filename=os.path.join(trial_out_dir, 'maze_records.svg'))
         visualize.plot_stats(stats, ylog=False, view=True, filename=os.path.join(trial_out_dir, 'avg_fitness.svg'))
         visualize.plot_species(stats, view=True, filename=os.path.join(trial_out_dir, 'speciation.svg'))
 
@@ -177,6 +185,8 @@ if __name__ == '__main__':
                         help='The maze configuration to use.')
     parser.add_argument('-g', '--generations', default=500, type=int, 
                         help='The number of generations for the evolutionary process.')
+    parser.add_argument('--width', type=int, default=400, help='The width of the records subplot')
+    parser.add_argument('--height', type=int, default=400, help='The height of the records subplot')
     args = parser.parse_args()
 
     if not (args.maze == 'medium' or args.maze == 'hard'):
@@ -201,4 +211,5 @@ if __name__ == '__main__':
     run_experiment( config_file=config_path, 
                     maze_env=maze_env, 
                     trial_out_dir=trial_out_dir,
-                    n_generations=args.generations)
+                    n_generations=args.generations,
+                    args=args)
