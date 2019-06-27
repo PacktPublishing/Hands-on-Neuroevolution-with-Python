@@ -176,7 +176,7 @@ def draw_net(config, genome, view=False, filename=None, directory=None, node_nam
 
     return dot
 
-def draw_maze_records(maze_env, records, best_threshold=0.8, filename='maze.svg', view=False, show_axes=False, width=400, height=400):
+def draw_maze_records(maze_env, records, best_threshold=0.8, filename=None, view=False, show_axes=False, width=400, height=400):
     """
     The function to draw maze with recorded agents positions.
     Arguments:
@@ -240,7 +240,8 @@ def draw_maze_records(maze_env, records, best_threshold=0.8, filename='maze.svg'
     ax2.invert_yaxis()
 
     # Save figure to file
-    #plt.savefig(filename)
+    if filename is not None:
+        plt.savefig(filename)
 
     if view:
         plt.show()
@@ -289,6 +290,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="The maze experiment visualizer.")
     parser.add_argument('-m', '--maze', default='medium', help='The maze configuration to use.')
     parser.add_argument('-r', '--records', help='The records file.')
+    parser.add_argument('-o', '--output', help='The file to store the plot.')
     parser.add_argument('--width', type=int, default=400, help='The width of the subplot')
     parser.add_argument('--height', type=int, default=400, help='The height of the subplot')
     parser.add_argument('--show_axes', type=bool, default=False, help='The flag to indicate whether to show plot axes.')
@@ -315,4 +317,4 @@ if __name__ == '__main__':
                       height=args.height,
                       view=True,
                       show_axes=args.show_axes,
-                      filename=None)
+                      filename=args.output)
