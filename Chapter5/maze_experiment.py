@@ -194,7 +194,7 @@ if __name__ == '__main__':
         exit(1)
 
     # Determine path to configuration file.
-    config_path = os.path.join(local_dir, '%s_maze_config.ini' % args.maze)
+    config_path = os.path.join(local_dir, 'maze_config.ini')
 
     trial_out_dir = os.path.join(out_dir, args.maze)
 
