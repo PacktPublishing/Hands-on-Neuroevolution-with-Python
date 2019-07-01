@@ -176,7 +176,7 @@ def draw_net(config, genome, view=False, filename=None, directory=None, node_nam
 
     return dot
 
-def draw_maze_records(maze_env, records, best_threshold=0.8, filename=None, view=False, show_axes=False, width=400, height=400):
+def draw_maze_records(maze_env, records, best_threshold=0.8, filename=None, view=False, show_axes=False, width=400, height=400, fig_height=7):
     """
     The function to draw maze with recorded agents positions.
     Arguments:
@@ -186,6 +186,7 @@ def draw_maze_records(maze_env, records, best_threshold=0.8, filename=None, view
         view:           The flag to indicate whether to view plot.
         width:          The width of drawing in pixels
         height:         The height of drawing in pixels
+        fig_height:      The plot figure height in inches
     """
     # find the distance threshold for the best species
     dist_threshold = maze_env.agent_distance_to_exit() * (1.0 - best_threshold)
@@ -208,7 +209,9 @@ def draw_maze_records(maze_env, records, best_threshold=0.8, filename=None, view
     # initialize plotting
     fig = plt.figure()
     fig.set_dpi(100)
-    fig.set_size_inches(7, 7)
+    fig_width = fig_height * (float(width)/float(2.0 * height )) - 0.2
+    print("Plot figure width: %.1f, height: %.1f" % (fig_width, fig_height))
+    fig.set_size_inches(fig_width, fig_height)
     ax1, ax2 = fig.subplots(2, 1, sharex=True)
     ax1.set_xlim(0, width)
     ax1.set_ylim(0, height)
@@ -293,6 +296,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', help='The file to store the plot.')
     parser.add_argument('--width', type=int, default=400, help='The width of the subplot')
     parser.add_argument('--height', type=int, default=400, help='The height of the subplot')
+    parser.add_argument('--fig_height', type=float, default=7, help='The height of the plot figure')
     parser.add_argument('--show_axes', type=bool, default=False, help='The flag to indicate whether to show plot axes.')
     args = parser.parse_args()
 
@@ -315,6 +319,7 @@ if __name__ == '__main__':
                       rs.records,
                       width=args.width,
                       height=args.height,
+                      fig_height=args.fig_height,
                       view=True,
                       show_axes=args.show_axes,
                       filename=args.output)
