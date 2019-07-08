@@ -9,8 +9,35 @@ import math
 import agent
 import geometry
 
+from novelty_archive import NoveltyItem
+
 # The maximal allowed speed for the maze solver agent
 MAX_AGENT_SPEED = 3.0
+# The sample size to store agent path in simulation, i.e., time step to store the agent's position
+# in the data associated with its NoveltyItem
+TIMESTEPS_SAMPLE_SIZE = 40
+
+def maze_novelty_metric(first_item, second_item):
+    """
+    The function to calculate the novelty metric score as a distance between two
+    data vectors in provided NoveltyItems
+    Arguments:
+        first_item:     The first NoveltyItem
+        second_item:    The second NoveltyItem
+    Returns:
+        The novelty metric as a distance between two
+        data vectors in provided NoveltyItems
+    """
+    if not (hasattr(first_item, "data") or hasattr(second_item, "data")):
+        return NotImplemented
+
+    diff_accum = 0.0
+    size = len(first_item)
+    for i in range(size):
+        diff = abs(first_item.data[i] - second_item.data[i])
+        diff_accum += diff
+    
+    return diff_accum / float(size)
 
 class MazeEnvironment:
     """
@@ -263,28 +290,46 @@ def read_environment(file_path):
     # create and return the maze environment
     return MazeEnvironment(agent=maze_agent, walls=walls, exit_point=maze_exit)
 
-def maze_simulation_evaluate(env, net, time_steps):
+def maze_simulation_evaluate(env, net, time_steps, n_item):
     """
     The function to evaluate maze simulation for specific environment
     and controll ANN provided. The results will be saved into provided
     agent record holder.
     Arguments:
-        env: The maze configuration environment.
-        net: The maze solver agent's control ANN.
+        env:        The maze configuration environment.
+        net:        The maze solver agent's control ANN.
         time_steps: The number of time steps for maze simulation.
+        n_item:     The NoveltyItem to store evaluation results.
+    Returns:
+        The goal-oriented fitness value, i.e., how close is agent to the exit at
+        the end of simulation.
     """
+    exit_found = False
     for i in range(time_steps):
         if maze_simulation_step(env, net):
             print("Maze solved in %d steps" % (i + 1))
-            return 1.0
-        
+            exit_found = True
+            break
+        # store agent path points at given sample size rate
+        if (time_steps - i) % TIMESTEPS_SAMPLE_SIZE == 0:
+            n_item.data.append(env.agent.location.x)
+            n_item.data.append(env.agent.location.y)
+
+    # store final agent coordinates as genome's novelty characteristics
+    n_item.data.append(env.agent.location.x)
+    n_item.data.append(env.agent.location.y) 
+
     # Calculate the fitness score based on distance from exit
     fitness = env.agent_distance_to_exit()
-    # Normalize fitness score to range (0,1]
-    fitness = (env.initial_distance - fitness) / env.initial_distance
-    if fitness <= 0:
-        fitness = 0.01
+    if exit_found:
+        fitness = 1.0
+    else:
+        # Normalize fitness score to range (0,1]
+        fitness = (env.initial_distance - fitness) / env.initial_distance
+        if fitness <= 0:
+            fitness = 0.01
 
+    n_item.fitness = fitness
     return fitness
 
 
