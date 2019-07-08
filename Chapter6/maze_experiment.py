@@ -21,6 +21,7 @@ import utils
 # The maze environment
 import maze_environment as maze
 import agent
+import novelty_archive as archive
 
 # The current working directory
 local_dir = os.path.dirname(__file__)
@@ -32,12 +33,13 @@ class MazeSimulationTrial:
     """
     The class to hold maze simulator execution parameters and results.
     """
-    def __init__(self, maze_env, population):
+    def __init__(self, maze_env, population, archive):
         """
         Creates new instance and initialize fileds.
         Arguments:
             maze_env:   The maze environment as loaded from configuration file.
             population: The population for this trial run
+            archive:    The archive to hold NoveltyItems
         """
         # The initial maze simulation environment
         self.orig_maze_environment = maze_env
@@ -45,35 +47,44 @@ class MazeSimulationTrial:
         self.record_store = agent.AgentRecordStore()
         # The NEAT population object
         self.population = population
+        # The NoveltyItem archive
+        self.archive = archive
 
 # The simulation results holder for a one trial.
 # It must be initialized before start of each trial.
 trialSim = None
 
-def eval_fitness(genome_id, genome, config, time_steps=400):
+def eval_individual(genome_id, genome, genomes, n_items_map, config, time_steps=400):
     """
-    Evaluates fitness of the provided genome.
+    Evaluates the individual represented by genome.
     Arguments:
-        genome_id:  The ID of genome.
-        genome:     The genome to evaluate.
-        config:     The NEAT configuration holder.
-        time_steps: The number of time steps to execute for maze solver simulation.
-    Returns:
-        The phenotype fitness score in range (0, 1]
+        genome_id:      The ID of genome.
+        genome:         The genome to evaluate.
+        genomes:        The genomes population for current generation.
+        n_items_map:    The map to hold novelty items for current generation.
+        config:         The NEAT configuration holder.
+        time_steps:     The number of time steps to execute for maze solver simulation.
+    Return:
+        The True if successful solver found.
     """
+    # create NoveltyItem for genome and store it into map
+    n_item = archive.NoveltyItem(generation=trialSim.population.generation,
+                                genomeId=genome_id)
+    n_items_map[genome_id] = n_item
     # run the simulation
     maze_env = copy.deepcopy(trialSim.orig_maze_environment)
     control_net = neat.nn.FeedForwardNetwork.create(genome, config)
-    fitness = maze.maze_simulation_evaluate(
+    goal_fitness = maze.maze_simulation_evaluate(
                                         env=maze_env, 
                                         net=control_net, 
-                                        time_steps=time_steps)
+                                        time_steps=time_steps,
+                                        n_item=n_item)
 
     # Store simulation results into the agent record
     record = agent.AgenRecord(
         generation=trialSim.population.generation,
         agent_id=genome_id)
-    record.fitness = fitness
+    record.fitness = goal_fitness
     record.x = maze_env.agent.location.x
     record.y = maze_env.agent.location.y
     record.hit_exit = maze_env.exit_found
@@ -82,7 +93,12 @@ def eval_fitness(genome_id, genome, config, time_steps=400):
     # add record to the store
     trialSim.record_store.add_record(record)
 
-    return fitness
+    # Evaluate the novelty of a genome and add the novelty item to the archive of Novelty items if appropriate
+    if not maze_env.exit_found:
+        # evaluate genome novelty and add it to the archive if appropriate
+        record.novelty = trialSim.archive.evaluate_individual_novelty(genome=genome, genomes=genomes, n_items_map=n_items_map)
+
+    return maze_env.exit_found
 
 def eval_genomes(genomes, config):
     """
@@ -94,23 +110,48 @@ def eval_genomes(genomes, config):
         config:  The configuration settings with algorithm
                  hyper-parameters
     """
+    n_items_map = {} # The map to hold the novelty items for current generation
+    solver_id = None
     for genome_id, genome in genomes:
-        genome.fitness = eval_fitness(genome_id, genome, config)
+        found = eval_individual(genome_id=genome_id, 
+                                genome=genome, 
+                                genomes=genomes, 
+                                n_items_map=n_items_map, 
+                                config=config)
+        if found:
+            solver_id = genome_id
 
-def run_experiment(config_file, maze_env, trial_out_dir, args=None, n_generations=100, silent=False):
+    # now adjust the archive settings and evaluate population
+    trialSim.archive.end_of_generation()
+    for genome_id, genome in genomes:
+        # set fitness value as novelty score of a genome in the population
+        genome.fitness = trialSim.archive.evaluate_individual_novelty(
+                                                                    genome=genome,
+                                                                    genomes=genomes,
+                                                                    n_items_map=n_items_map,
+                                                                    only_fitness=True)
+
+    # if successful maze solver was found then adjust its fitness 
+    # to signal the finish evolution
+    if solver_id is not None:
+        genomes[solver_id].fitness = math.log(config.fitness_threshold)
+
+
+def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, args=None, n_generations=100, silent=False):
     """
     The function to run the experiment against hyper-parameters 
     defined in the provided configuration file.
     The winner genome will be rendered as a graph as well as the
     important statistics of neuroevolution process execution.
     Arguments:
-        config_file:    The path to the file with experiment configuration
-        maze_env:       The maze environment to use in simulation.
-        trial_out_dir:  The directory to store outputs for this trial
-        n_generations:  The number of generations to execute.
-        silent:         If True than no intermediary outputs will be
-                        presented until solution is found.
-        args:           The command line arguments holder.
+        config_file:        The path to the file with experiment configuration
+        maze_env:           The maze environment to use in simulation.
+        novelty_archive:    The archive to work with NoveltyItems.
+        trial_out_dir:      The directory to store outputs for this trial
+        n_generations:      The number of generations to execute.
+        silent:             If True than no intermediary outputs will be
+                            presented until solution is found.
+        args:               The command line arguments holder.
     Returns:
         True if experiment finished with successful solver found. 
     """
@@ -128,7 +169,9 @@ def run_experiment(config_file, maze_env, trial_out_dir, args=None, n_generation
 
     # Create the trial simulation
     global trialSim
-    trialSim = MazeSimulationTrial(maze_env=maze_env, population=p)
+    trialSim = MazeSimulationTrial(maze_env=maze_env, 
+                                    population=p,
+                                    archive=novelty_archive)
 
     # Add a stdout reporter to show progress in the terminal.
     p.add_reporter(neat.StdOutReporter(True))
@@ -185,6 +228,8 @@ if __name__ == '__main__':
                         help='The maze configuration to use.')
     parser.add_argument('-g', '--generations', default=500, type=int, 
                         help='The number of generations for the evolutionary process.')
+    parser.add_argument('-t', '--ns_threshold', type=float, default=6.0,
+                        help="The novelty threshold value for the archive of NoveltyItems.")
     parser.add_argument('--width', type=int, default=400, help='The width of the records subplot')
     parser.add_argument('--height', type=int, default=400, help='The height of the records subplot')
     args = parser.parse_args()
@@ -205,11 +250,14 @@ if __name__ == '__main__':
     maze_env_config = os.path.join(local_dir, '%s_maze.txt' % args.maze)
     maze_env = maze.read_environment(maze_env_config)
 
-    # visualize.draw_maze_records(maze_env, None, view=True)
+    # Create novelty archive
+    novelty_archive = archive.NoveltyArchive(threshold=args.ns_threshold,
+                                        metric=maze.maze_novelty_metric)
 
     print("Starting the %s maze experiment" % args.maze)
     run_experiment( config_file=config_path, 
                     maze_env=maze_env, 
+                    novelty_archive=novelty_archive,
                     trial_out_dir=trial_out_dir,
                     n_generations=args.generations,
                     args=args)
