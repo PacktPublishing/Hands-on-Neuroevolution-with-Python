@@ -127,20 +127,6 @@ class NoveltyArchive:
         # genomes (using the goal-oriented fitness score)
         self.fittest_items = []
 
-    def evaluate_population_novelty(self, genomes, n_items_map, only_fitness=True):
-        """
-        The function to evaluate novelty (fitness) scores for the entire population.
-        Arguments:
-            genomes:        The current population of genomes
-            n_items_map:    The map of novelty items for the current population by genome ID
-            only_fitness:   The flag to indicate if only fitness should be calculated and assigned to genome
-        """
-        for genome in genomes: 
-            self.evaluate_individual_novelty(genome=genome,
-                                            genomes=genomes,
-                                            n_items_map=n_items_map,
-                                            only_fitness=only_fitness)
-
     def evaluate_individual_novelty(self, genome, genomes, n_items_map, only_fitness=False):
         """
         The function to evaluate the novelty score of a single genome within
@@ -150,6 +136,10 @@ class NoveltyArchive:
             genomes:        The current population of genomes
             n_items_map:    The map of novelty items for the current population by genome ID
             only_fitness:   The flag to indicate if only fitness should be calculated and assigned to genome
+                            using the novelty score. Otherwise novelty score will be used to accept
+                            genome into novelty items archive.
+        Returns:
+            The calculated novelty score for individual genome.
         """
         if genome.key not in n_items_map:
             print("WARNING! Found Genome without novelty point associated: %s" +
@@ -161,7 +151,6 @@ class NoveltyArchive:
         if only_fitness:
             # assign genome fitness according to the average novelty within archive and population
             result = self._novelty_avg_knn(item=item, genomes=genomes, n_items_map=n_items_map)
-            genome.fitness = result
         else:
             # consider adding a NoveltyItem to the archive based on the distance to a closest neighbor
             result = self._novelty_avg_knn(item=item, neighbors=1, n_items_map=n_items_map)
@@ -171,6 +160,8 @@ class NoveltyArchive:
         # store found values to the novelty item
         item.novelty = result
         item.generation = self.generation
+
+        return result
     
     def update_fittest_with_genome(self, genome, n_items_map):
         """
@@ -197,6 +188,13 @@ class NoveltyArchive:
                 self.fittest_items.sort(reverse=True)
                 # remove the less fit item
                 del self.fittest_items[-1]
+
+    def end_of_generation(self):
+        """
+        The function to update archive state at the end of the generation.
+        """
+        self.generation += 1
+        self._adjust_archive_settings()
 
     def _add_novelty_item(self, item):
         """
