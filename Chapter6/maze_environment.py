@@ -13,9 +13,6 @@ from novelty_archive import NoveltyItem
 
 # The maximal allowed speed for the maze solver agent
 MAX_AGENT_SPEED = 3.0
-# The sample size to store agent path in simulation, i.e., time step to store the agent's position
-# in the data associated with its NoveltyItem
-TIMESTEPS_SAMPLE_SIZE = 40
 
 def maze_novelty_metric(first_item, second_item):
     """
@@ -32,7 +29,7 @@ def maze_novelty_metric(first_item, second_item):
         return NotImplemented
 
     diff_accum = 0.0
-    size = len(first_item)
+    size = len(first_item.data)
     for i in range(size):
         diff = abs(first_item.data[i] - second_item.data[i])
         diff_accum += diff
@@ -61,6 +58,9 @@ class MazeEnvironment:
         self.exit_found = False
         # The initial distance of agent from exit
         self.initial_distance = self.agent_distance_to_exit()
+
+        # The sample rate of agent position points saving during simulation steps.
+        self.location_sample_rate = -1
 
         # Update sensors
         self.update_rangefinder_sensors()
@@ -296,10 +296,10 @@ def maze_simulation_evaluate(env, net, time_steps, n_item):
     and controll ANN provided. The results will be saved into provided
     agent record holder.
     Arguments:
-        env:        The maze configuration environment.
-        net:        The maze solver agent's control ANN.
-        time_steps: The number of time steps for maze simulation.
-        n_item:     The NoveltyItem to store evaluation results.
+        env:                    The maze configuration environment.
+        net:                    The maze solver agent's control ANN.
+        time_steps:             The number of time steps for maze simulation.
+        n_item:                 The NoveltyItem to store evaluation results.
     Returns:
         The goal-oriented fitness value, i.e., how close is agent to the exit at
         the end of simulation.
@@ -310,8 +310,8 @@ def maze_simulation_evaluate(env, net, time_steps, n_item):
             print("Maze solved in %d steps" % (i + 1))
             exit_found = True
             break
-        # store agent path points at given sample size rate
-        if (time_steps - i) % TIMESTEPS_SAMPLE_SIZE == 0:
+        # store agent path points at a given sample size rate
+        if (time_steps - i) % env.location_sample_rate == 0:
             n_item.data.append(env.agent.location.x)
             n_item.data.append(env.agent.location.y)
 
