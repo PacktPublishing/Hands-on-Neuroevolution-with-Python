@@ -196,6 +196,27 @@ class NoveltyArchive:
         self.generation += 1
         self._adjust_archive_settings()
 
+    def write_to_file(self, path):
+        """
+        The function to write all NoveltyItems stored in this archive.
+        Arguments:
+            path: The path to the file where to store NoveltyItems
+        """
+        with open(path, 'w') as file:
+            for ni in self.novel_items:
+                file.write("%s\n" % ni)
+
+    def write_fittest_to_file(self, path):
+        """
+        The function to write the list of NoveltyItems of fittests genomes
+        that was collected during the evolution.
+        Arguments:
+            path: The path to the file where to store NoveltyItems
+        """
+        with open(path, 'w') as file:
+            for ni in self.fittest_items:
+                file.write("%s\n" % ni)
+
     def _add_novelty_item(self, item):
         """
         The function to add specified NoveltyItem to this archive.
@@ -265,9 +286,9 @@ class NoveltyArchive:
         distances = self._map_novelty(item)
 
         # second, map item against the population
-        for gen in genomes:
-            if gen.key in n_items_map:
-                gen_item = n_items_map[gen.key]
+        for genome_id, _ in genomes:
+            if genome_id in n_items_map:
+                gen_item = n_items_map[genome_id]
                 distance = ItemsDistance(
                     first_item = gen_item,
                     second_item = item,
@@ -313,7 +334,7 @@ class NoveltyArchive:
             while weight < float(neighbors) and i < length:
                 distance_sum += distances[i].distance
                 weight += 1.0
-                i += 1.0
+                i += 1
 
             # finding the average
             if weight > 0:
