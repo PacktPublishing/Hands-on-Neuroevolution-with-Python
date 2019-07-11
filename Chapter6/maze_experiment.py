@@ -114,7 +114,7 @@ def eval_genomes(genomes, config):
                  hyper-parameters
     """
     n_items_map = {} # The map to hold the novelty items for current generation
-    solver_id = None
+    solver_genome = None
     for genome_id, genome in genomes:
         found = eval_individual(genome_id=genome_id, 
                                 genome=genome, 
@@ -122,7 +122,7 @@ def eval_genomes(genomes, config):
                                 n_items_map=n_items_map, 
                                 config=config)
         if found:
-            solver_id = genome_id
+            solver_genome = genome
 
     # now adjust the archive settings and evaluate population
     trial_sim.archive.end_of_generation()
@@ -143,11 +143,11 @@ def eval_genomes(genomes, config):
 
     # if successful maze solver was found then adjust its fitness 
     # to signal the finish evolution
-    if solver_id is not None:
-        genomes[solver_id].fitness = math.log(800000) # ~=13.59
+    if solver_genome is not None:
+        solver_genome.fitness = math.log(800000) # ~=13.59
 
 
-def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, args=None, n_generations=100, silent=False):
+def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, checkpoint=None, args=None, n_generations=100, silent=False):
     """
     The function to run the experiment against hyper-parameters 
     defined in the provided configuration file.
@@ -161,6 +161,7 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, args=N
         n_generations:      The number of generations to execute.
         silent:             If True than no intermediary outputs will be
                             presented until solution is found.
+        checkpoint:         The checkpoint file name to start from.
         args:               The command line arguments holder.
     Returns:
         True if experiment finished with successful solver found. 
@@ -175,7 +176,11 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, args=N
                          config_file)
 
     # Create the population, which is the top-level object for a NEAT run.
-    p = neat.Population(config)
+    if checkpoint is not None:
+        filename = os.path.join(trial_out_dir, checkpoint)
+        p = neat.Checkpointer().restore_checkpoint(filename)
+    else:
+        p = neat.Population(config)
 
     # Create the trial simulation
     global trial_sim
@@ -248,6 +253,7 @@ if __name__ == '__main__':
                         help="The sample rate of agent position points saving during simulation steps.")
     parser.add_argument('--width', type=int, default=400, help='The width of the records subplot')
     parser.add_argument('--height', type=int, default=400, help='The height of the records subplot')
+    parser.add_argument('--checkpoint', type=str, help="The name of checkpoint to start from")
     args = parser.parse_args()
 
     if not (args.maze == 'medium' or args.maze == 'hard'):
@@ -260,7 +266,9 @@ if __name__ == '__main__':
     trial_out_dir = os.path.join(out_dir, args.maze)
 
     # Clean results of previous run if any or init the ouput directory
-    utils.clear_output(trial_out_dir)
+    if args.checkpoint is not None:
+        # if checkpoint is specified do not clean
+        utils.clear_output(trial_out_dir)
 
     # Run the experiment
     maze_env_config = os.path.join(local_dir, '%s_maze.txt' % args.maze)
@@ -277,4 +285,5 @@ if __name__ == '__main__':
                     novelty_archive=novelty_archive,
                     trial_out_dir=trial_out_dir,
                     n_generations=args.generations,
+                    checkpoint=args.checkpoint,
                     args=args)
