@@ -253,7 +253,7 @@ if __name__ == '__main__':
                         help="The sample rate of agent position points saving during simulation steps.")
     parser.add_argument('--width', type=int, default=400, help='The width of the records subplot')
     parser.add_argument('--height', type=int, default=400, help='The height of the records subplot')
-    parser.add_argument('--checkpoint', type=str, help="The name of checkpoint to start from")
+    parser.add_argument('--checkpoint', type=str, default=None, help="The name of checkpoint to start from")
     args = parser.parse_args()
 
     if not (args.maze == 'medium' or args.maze == 'hard'):
@@ -266,7 +266,7 @@ if __name__ == '__main__':
     trial_out_dir = os.path.join(out_dir, args.maze)
 
     # Clean results of previous run if any or init the ouput directory
-    if args.checkpoint is not None:
+    if args.checkpoint is None:
         # if checkpoint is specified do not clean
         utils.clear_output(trial_out_dir)
 
