@@ -176,6 +176,53 @@ def draw_net(config, genome, view=False, filename=None, directory=None, node_nam
 
     return dot
 
+def draw_agent_path(maze_env, path_points, genome, filename=None, view=False, show_axes=False, width=400, height=400, fig_height=4):
+    """
+    The function to draw path of the maze solver agent through the maze.
+    Arguments:
+        maze_env:       The maze environment configuration.
+        path_points:    The list of agent positions during simulation.
+        genome:         The genome of solver agent.
+        filename:       The name of file to store plot.
+        view:           The flag to indicate whether to view plot.
+        width:          The width of drawing in pixels
+        height:         The height of drawing in pixels
+        fig_height:      The plot figure height in inches
+    """
+    # initialize plotting
+    fig, ax = plt.subplots()
+    fig.set_dpi(100)
+    fig_width = fig_height * (float(width)/float(height )) - 0.2
+    print("Plot figure width: %.1f, height: %.1f" % (fig_width, fig_height))
+    fig.set_size_inches(fig_width, fig_height)
+    ax.set_xlim(0, width)
+    ax.set_ylim(0, height)
+
+    ax.set_title('Maze solver agent path, genome ID %s' % genome.key)
+    # draw path
+    for p in path_points:
+        circle = plt.Circle((p.x, p.y), 2.0, facecolor='b')
+        ax.add_patch(circle)
+
+    # draw maze
+    _draw_maze_(maze_env, ax)
+
+    # turn off axis rendering
+    if not show_axes:
+        ax.axis('off')
+
+    # Invert Y axis to have coordinates origin at the top left
+    ax.invert_yaxis()
+
+    # Save figure to file
+    if filename is not None:
+        plt.savefig(filename)
+
+    if view:
+        plt.show()
+
+    plt.close()
+
 def draw_maze_records(maze_env, records, best_threshold=0.8, filename=None, view=False, show_axes=False, width=400, height=400, fig_height=7):
     """
     The function to draw maze with recorded agents positions.
@@ -183,6 +230,7 @@ def draw_maze_records(maze_env, records, best_threshold=0.8, filename=None, view
         maze_env:       The maze environment configuration.
         records:        The records of solver agents collected during NEAT execution.
         best_threshold: The minimal fitness of maze solving agent's species to be included into the best ones.
+        filename:       The name of file to store plot.
         view:           The flag to indicate whether to view plot.
         width:          The width of drawing in pixels
         height:         The height of drawing in pixels

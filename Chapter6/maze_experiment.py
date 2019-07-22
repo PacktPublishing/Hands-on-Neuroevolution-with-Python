@@ -29,6 +29,9 @@ local_dir = os.path.dirname(__file__)
 out_dir = os.path.join(local_dir, 'out')
 out_dir = os.path.join(out_dir, 'maze_ns')
 
+# The number of maze solving simulator steps
+SOVER_TIME_STEPS = 500#400
+
 class MazeSimulationTrial:
     """
     The class to hold maze simulator execution parameters and results.
@@ -54,7 +57,7 @@ class MazeSimulationTrial:
 # It must be initialized before start of each trial.
 trial_sim = None
 
-def eval_individual(genome_id, genome, genomes, n_items_map, config, time_steps=400):
+def eval_individual(genome_id, genome, genomes, n_items_map, config):
     """
     Evaluates the individual represented by genome.
     Arguments:
@@ -63,7 +66,6 @@ def eval_individual(genome_id, genome, genomes, n_items_map, config, time_steps=
         genomes:        The genomes population for current generation.
         n_items_map:    The map to hold novelty items for current generation.
         config:         The NEAT configuration holder.
-        time_steps:     The number of time steps to execute for maze solver simulation.
     Return:
         The True if successful solver found.
     """
@@ -77,7 +79,7 @@ def eval_individual(genome_id, genome, genomes, n_items_map, config, time_steps=
     goal_fitness = maze.maze_simulation_evaluate(
                                         env=maze_env, 
                                         net=control_net, 
-                                        time_steps=time_steps,
+                                        time_steps=SOVER_TIME_STEPS,
                                         n_item=n_item)
 
     # Store simulation results into the agent record
@@ -167,7 +169,7 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, checkp
         True if experiment finished with successful solver found. 
     """
     # set random seed
-    seed = 1559231616#int(time.time())#42#
+    seed = 1563440677#int(time.time())#1562938287#1559231616#42#1563358622#
     random.seed(seed)
 
     # Load configuration.
@@ -237,6 +239,21 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, checkp
         # store NoveltyItems archive data
         trial_sim.archive.write_fittest_to_file(path=os.path.join(trial_out_dir, 'ns_items_fittest.txt'))
         trial_sim.archive.write_to_file(path=os.path.join(trial_out_dir, 'ns_items_all.txt'))
+
+        # create the best genome simulation path and render
+        maze_env = copy.deepcopy(trial_sim.orig_maze_environment)
+        control_net = neat.nn.FeedForwardNetwork.create(best_genome, config)
+        path_points = []
+        maze.maze_simulation_evaluate(
+                                    env=maze_env, 
+                                    net=control_net, 
+                                    time_steps=SOVER_TIME_STEPS,
+                                    path_points=path_points)
+        visualize.draw_agent_path(trial_sim.orig_maze_environment, path_points, best_genome,
+                                    view=True, 
+                                    width=args.width,
+                                    height=args.height,
+                                    filename=os.path.join(trial_out_dir, 'best_solver_path.svg'))
 
     return solution_found
 
