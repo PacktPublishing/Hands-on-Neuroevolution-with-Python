@@ -30,7 +30,7 @@ out_dir = os.path.join(local_dir, 'out')
 out_dir = os.path.join(out_dir, 'maze_ns')
 
 # The number of maze solving simulator steps
-SOVER_TIME_STEPS = 500#400
+SOVER_TIME_STEPS = 400
 
 class MazeSimulationTrial:
     """

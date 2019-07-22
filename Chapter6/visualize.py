@@ -198,7 +198,7 @@ def draw_agent_path(maze_env, path_points, genome, filename=None, view=False, sh
     ax.set_xlim(0, width)
     ax.set_ylim(0, height)
 
-    ax.set_title('Maze solver agent path, genome ID %s' % genome.key)
+    ax.set_title('Maze Solver Path, Genome ID: %s' % genome.key)
     # draw path
     for p in path_points:
         circle = plt.Circle((p.x, p.y), 2.0, facecolor='b')
