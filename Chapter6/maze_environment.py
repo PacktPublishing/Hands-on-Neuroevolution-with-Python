@@ -290,34 +290,42 @@ def read_environment(file_path):
     # create and return the maze environment
     return MazeEnvironment(agent=maze_agent, walls=walls, exit_point=maze_exit)
 
-def maze_simulation_evaluate(env, net, time_steps, n_item):
+def maze_simulation_evaluate(env, net, time_steps, n_item=None, path_points=None):
     """
     The function to evaluate maze simulation for specific environment
     and controll ANN provided. The results will be saved into provided
     agent record holder.
     Arguments:
-        env:                    The maze configuration environment.
-        net:                    The maze solver agent's control ANN.
-        time_steps:             The number of time steps for maze simulation.
-        n_item:                 The NoveltyItem to store evaluation results.
+        env:            The maze configuration environment.
+        net:            The maze solver agent's control ANN.
+        time_steps:     The number of time steps for maze simulation.
+        n_item:         The NoveltyItem to store evaluation results.
+        path_points:    The holder for path points collected during simulation. If
+                        provided None then nothing will be collected.
     Returns:
         The goal-oriented fitness value, i.e., how close is agent to the exit at
         the end of simulation.
     """
     exit_found = False
     for i in range(time_steps):
+        if path_points is not None:
+            # collect current position
+            path_points.append(geometry.Point(env.agent.location.x, env.agent.location.y))
+
         if maze_simulation_step(env, net):
             print("Maze solved in %d steps" % (i + 1))
             exit_found = True
             break
+
         # store agent path points at a given sample size rate
-        if (time_steps - i) % env.location_sample_rate == 0:
+        if (time_steps - i) % env.location_sample_rate == 0 and n_item is not None:
             n_item.data.append(env.agent.location.x)
             n_item.data.append(env.agent.location.y)
 
     # store final agent coordinates as genome's novelty characteristics
-    n_item.data.append(env.agent.location.x)
-    n_item.data.append(env.agent.location.y) 
+    if n_item is not None:
+        n_item.data.append(env.agent.location.x)
+        n_item.data.append(env.agent.location.y) 
 
     # Calculate the fitness score based on distance from exit
     fitness = env.agent_distance_to_exit()
@@ -329,7 +337,9 @@ def maze_simulation_evaluate(env, net, time_steps, n_item):
         if fitness <= 0:
             fitness = 0.01
 
-    n_item.fitness = fitness
+    if n_item is not None:
+        n_item.fitness = fitness
+
     return fitness
 
 
