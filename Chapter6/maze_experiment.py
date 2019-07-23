@@ -30,7 +30,7 @@ out_dir = os.path.join(local_dir, 'out')
 out_dir = os.path.join(out_dir, 'maze_ns')
 
 # The number of maze solving simulator steps
-SOVER_TIME_STEPS = 400
+SOLVER_TIME_STEPS = 400
 
 class MazeSimulationTrial:
     """
@@ -79,7 +79,7 @@ def eval_individual(genome_id, genome, genomes, n_items_map, config):
     goal_fitness = maze.maze_simulation_evaluate(
                                         env=maze_env, 
                                         net=control_net, 
-                                        time_steps=SOVER_TIME_STEPS,
+                                        time_steps=SOLVER_TIME_STEPS,
                                         n_item=n_item)
 
     # Store simulation results into the agent record
@@ -169,7 +169,7 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, checkp
         True if experiment finished with successful solver found. 
     """
     # set random seed
-    seed = 1563440677#int(time.time())#1562938287#1559231616#42#1563358622#
+    seed = 1559231616#1563440677#int(time.time())#1562938287#42#1563358622#
     random.seed(seed)
 
     # Load configuration.
@@ -247,7 +247,7 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, checkp
         maze.maze_simulation_evaluate(
                                     env=maze_env, 
                                     net=control_net, 
-                                    time_steps=SOVER_TIME_STEPS,
+                                    time_steps=SOLVER_TIME_STEPS,
                                     path_points=path_points)
         visualize.draw_agent_path(trial_sim.orig_maze_environment, path_points, best_genome,
                                     view=True, 
