@@ -34,7 +34,9 @@ class NoveltyItem:
         self.novelty = novelty
         # Indicates whether this item was already added to the archive
         self.in_archive = False
-        # The auxiliary data associated with item
+        # The list holding data points associated with this item that will be used
+        # to calculate distance between this item and any other item. This distance
+        # will be used to estimate the novelty score associated with the item.
         self.data = []
 
     def __str__(self):
@@ -155,6 +157,7 @@ class NoveltyArchive:
             # consider adding a NoveltyItem to the archive based on the distance to a closest neighbor
             result = self._novelty_avg_knn(item=item, neighbors=1, n_items_map=n_items_map)
             if result > self.novelty_threshold or len(self.novel_items) < ArchiveSeedAmount:
+                print("Novelty: %f, threshold: %f" % (result, self.novelty_threshold))
                 self._add_novelty_item(item)
 
         # store found values to the novelty item
