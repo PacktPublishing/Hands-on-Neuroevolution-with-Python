@@ -308,14 +308,14 @@ def maze_simulation_evaluate(env, net, time_steps, n_item=None, path_points=None
     """
     exit_found = False
     for i in range(time_steps):
-        if path_points is not None:
-            # collect current position
-            path_points.append(geometry.Point(env.agent.location.x, env.agent.location.y))
-
         if maze_simulation_step(env, net):
             print("Maze solved in %d steps" % (i + 1))
             exit_found = True
             break
+
+        if path_points is not None:
+            # collect current position
+            path_points.append(geometry.Point(env.agent.location.x, env.agent.location.y))
 
         # store agent path points at a given sample size rate
         if (time_steps - i) % env.location_sample_rate == 0 and n_item is not None:
@@ -328,12 +328,13 @@ def maze_simulation_evaluate(env, net, time_steps, n_item=None, path_points=None
         n_item.data.append(env.agent.location.y) 
 
     # Calculate the fitness score based on distance from exit
-    fitness = env.agent_distance_to_exit()
+    fitness = 0.0
     if exit_found:
         fitness = 1.0
     else:
-        # Normalize fitness score to range (0,1]
-        fitness = (env.initial_distance - fitness) / env.initial_distance
+        # Normalize distance to range (0,1]
+        distance = env.agent_distance_to_exit()
+        fitness = (env.initial_distance - distance) / env.initial_distance
         if fitness <= 0:
             fitness = 0.01
 
