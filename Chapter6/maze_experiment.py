@@ -169,7 +169,7 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, checkp
         True if experiment finished with successful solver found. 
     """
     # set random seed
-    seed = 1559231616#1563440677#int(time.time())#1562938287#42#1563358622#
+    seed = 1563440677#int(time.time())#1562938287#42#1563358622#1559231616#
     random.seed(seed)
 
     # Load configuration.
@@ -244,11 +244,12 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, checkp
         maze_env = copy.deepcopy(trial_sim.orig_maze_environment)
         control_net = neat.nn.FeedForwardNetwork.create(best_genome, config)
         path_points = []
-        maze.maze_simulation_evaluate(
+        evaluate_fitness = maze.maze_simulation_evaluate(
                                     env=maze_env, 
                                     net=control_net, 
                                     time_steps=SOLVER_TIME_STEPS,
                                     path_points=path_points)
+        print("Evaluated fitness of best agent: %f" % evaluate_fitness)
         visualize.draw_agent_path(trial_sim.orig_maze_environment, path_points, best_genome,
                                     view=True, 
                                     width=args.width,
