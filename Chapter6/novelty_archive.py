@@ -149,6 +149,10 @@ class NoveltyArchive:
             return
         
         item = n_items_map[genome.key]
+        # Check if individual was marked for extinction due to failure to meet minimal fitness criterion
+        if item.fitness == -1.0:
+            return -1.0
+
         result = 0.0
         if only_fitness:
             # assign genome fitness according to the average novelty within archive and population
@@ -157,7 +161,6 @@ class NoveltyArchive:
             # consider adding a NoveltyItem to the archive based on the distance to a closest neighbor
             result = self._novelty_avg_knn(item=item, neighbors=1, n_items_map=n_items_map)
             if result > self.novelty_threshold or len(self.novel_items) < ArchiveSeedAmount:
-                print("Novelty: %f, threshold: %f" % (result, self.novelty_threshold))
                 self._add_novelty_item(item)
 
         # store found values to the novelty item

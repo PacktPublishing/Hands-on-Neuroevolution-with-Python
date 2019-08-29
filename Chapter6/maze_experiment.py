@@ -23,14 +23,10 @@ import maze_environment as maze
 import agent
 import novelty_archive as archive
 
-# The current working directory
-local_dir = os.path.dirname(__file__)
-# The directory to store outputs
-out_dir = os.path.join(local_dir, 'out')
-out_dir = os.path.join(out_dir, 'maze_ns')
-
 # The number of maze solving simulator steps
 SOLVER_TIME_STEPS = 400
+# The minimal goal fitness criterion
+MCNS = 0.01
 
 class MazeSimulationTrial:
     """
@@ -80,7 +76,13 @@ def eval_individual(genome_id, genome, genomes, n_items_map, config):
                                         env=maze_env, 
                                         net=control_net, 
                                         time_steps=SOLVER_TIME_STEPS,
-                                        n_item=n_item)
+                                        n_item=n_item,
+                                        mcns=MCNS)
+
+    if goal_fitness == -1:
+        # The individual doesn't meet the minimal fitness criterion
+        print("Individ with ID: %d marked for extiction, MCNS: %f" % (genome_id, MCNS))
+        return False
 
     # Store simulation results into the agent record
     record = agent.AgenRecord(
@@ -149,7 +151,8 @@ def eval_genomes(genomes, config):
         solver_genome.fitness = math.log(800000) # ~=13.59
 
 
-def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, checkpoint=None, args=None, n_generations=100, silent=False):
+def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, args=None, n_generations=100, 
+                    save_results=False, silent=False):
     """
     The function to run the experiment against hyper-parameters 
     defined in the provided configuration file.
@@ -161,16 +164,17 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, checkp
         novelty_archive:    The archive to work with NoveltyItems.
         trial_out_dir:      The directory to store outputs for this trial
         n_generations:      The number of generations to execute.
+        save_results:       The flag to control if intermdiate results will be saved.
         silent:             If True than no intermediary outputs will be
                             presented until solution is found.
-        checkpoint:         The checkpoint file name to start from.
         args:               The command line arguments holder.
     Returns:
         True if experiment finished with successful solver found. 
     """
     # set random seed
-    seed = 1563440677#int(time.time())#1562938287#42#1563358622#1559231616#
+    seed = int(time.time())#1559231616#1562938287#42#1563358622#1559231616#1563440677#
     random.seed(seed)
+    print("Selected random seed:", seed)
 
     # Load configuration.
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
@@ -178,11 +182,7 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, checkp
                          config_file)
 
     # Create the population, which is the top-level object for a NEAT run.
-    if checkpoint is not None:
-        filename = os.path.join(trial_out_dir, checkpoint)
-        p = neat.Checkpointer().restore_checkpoint(filename)
-    else:
-        p = neat.Population(config)
+    p = neat.Population(config)    
 
     # Create the trial simulation
     global trial_sim
@@ -194,7 +194,6 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, checkp
     p.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
-    p.add_reporter(neat.Checkpointer(5, filename_prefix='%s/maze-neat-checkpoint-' % trial_out_dir))
 
     # Run for up to N generations.
     start_time = time.time()
@@ -220,21 +219,22 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, checkp
     print("Trial elapsed time: %.3f sec" % (elapsed_time))
 
     # Visualize the experiment results
-    if not silent or solution_found:
+    show_results = not silent or solution_found
+    if save_results or show_results:
         node_names =   {-1:'RF_R', -2:'RF_FR', -3:'RF_F', -4:'RF_FL', -5:'RF_L', -6: 'RF_B', 
                         -7:'RAD_F', -8:'RAD_L', -9:'RAD_B', -10:'RAD_R', 
                         0:'ANG_VEL', 1:'VEL'}
-        visualize.draw_net(config, best_genome, True, node_names=node_names, directory=trial_out_dir, fmt='svg')
+        visualize.draw_net(config, best_genome, view=show_results, node_names=node_names, directory=trial_out_dir, fmt='svg')
         if args is None:
-            visualize.draw_maze_records(maze_env, trial_sim.record_store.records, view=True)
+            visualize.draw_maze_records(maze_env, trial_sim.record_store.records, view=show_results)
         else:
             visualize.draw_maze_records(maze_env, trial_sim.record_store.records, 
-                                        view=True, 
+                                        view=show_results, 
                                         width=args.width,
                                         height=args.height,
                                         filename=os.path.join(trial_out_dir, 'maze_records.svg'))
-        visualize.plot_stats(stats, ylog=False, view=True, filename=os.path.join(trial_out_dir, 'avg_fitness.svg'))
-        visualize.plot_species(stats, view=True, filename=os.path.join(trial_out_dir, 'speciation.svg'))
+        visualize.plot_stats(stats, ylog=False, view=show_results, filename=os.path.join(trial_out_dir, 'avg_fitness.svg'))
+        visualize.plot_species(stats, view=show_results, filename=os.path.join(trial_out_dir, 'speciation.svg'))
 
         # store NoveltyItems archive data
         trial_sim.archive.write_fittest_to_file(path=os.path.join(trial_out_dir, 'ns_items_fittest.txt'))
@@ -251,7 +251,7 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, checkp
                                     path_points=path_points)
         print("Evaluated fitness of best agent: %f" % evaluate_fitness)
         visualize.draw_agent_path(trial_sim.orig_maze_environment, path_points, best_genome,
-                                    view=True, 
+                                    view=show_results, 
                                     width=args.width,
                                     height=args.height,
                                     filename=os.path.join(trial_out_dir, 'best_solver_path.svg'))
@@ -265,43 +265,52 @@ if __name__ == '__main__':
                         help='The maze configuration to use.')
     parser.add_argument('-g', '--generations', default=500, type=int, 
                         help='The number of generations for the evolutionary process.')
-    parser.add_argument('-t', '--ns_threshold', type=float, default=6.0,
+    parser.add_argument('-t', '--trials', type=int, default=1, help='The number of trials to run')
+    parser.add_argument('-n', '--ns_threshold', type=float, default=6.0,
                         help="The novelty threshold value for the archive of NoveltyItems.")
-    parser.add_argument('-r', '--location_sample_rate', type=int, default=40,
+    parser.add_argument('-r', '--location_sample_rate', type=int, default=4000,
                         help="The sample rate of agent position points saving during simulation steps.")
     parser.add_argument('--width', type=int, default=400, help='The width of the records subplot')
     parser.add_argument('--height', type=int, default=400, help='The height of the records subplot')
-    parser.add_argument('--checkpoint', type=str, default=None, help="The name of checkpoint to start from")
     args = parser.parse_args()
 
     if not (args.maze == 'medium' or args.maze == 'hard'):
         print('Unsupported maze configuration: %s' % args.maze)
         exit(1)
 
+    # The current working directory
+    local_dir = os.path.dirname(__file__)
+    # The directory to store outputs
+    out_dir = os.path.join(local_dir, 'out')
+    out_dir = os.path.join(out_dir, 'maze_ns')
+
     # Determine path to configuration file.
     config_path = os.path.join(local_dir, 'maze_config.ini')
 
-    trial_out_dir = os.path.join(out_dir, args.maze)
-
     # Clean results of previous run if any or init the ouput directory
-    if args.checkpoint is None:
-        # if checkpoint is specified do not clean
-        utils.clear_output(trial_out_dir)
+    out_dir = os.path.join(out_dir, args.maze)
+    utils.clear_output(out_dir)
 
-    # Run the experiment
+    # Read the maze environment configuration
     maze_env_config = os.path.join(local_dir, '%s_maze.txt' % args.maze)
     maze_env = maze.read_environment(maze_env_config)
     maze_env.location_sample_rate = args.location_sample_rate
 
-    # Create novelty archive
-    novelty_archive = archive.NoveltyArchive(threshold=args.ns_threshold,
-                                        metric=maze.maze_novelty_metric)
-
-    print("Starting the %s maze experiment (Novelty Search)" % args.maze)
-    run_experiment( config_file=config_path, 
-                    maze_env=maze_env, 
-                    novelty_archive=novelty_archive,
-                    trial_out_dir=trial_out_dir,
-                    n_generations=args.generations,
-                    checkpoint=args.checkpoint,
-                    args=args)
+    # Run the maze experiment trials
+    print("Starting the %s maze experiment (Novelty Search), for %d trials" % (args.maze, args.trials))
+    for t in range(args.trials):
+        print("\n\n----- Starting Trial: %d ------" % (t))
+        # Create novelty archive
+        novelty_archive = archive.NoveltyArchive(threshold=args.ns_threshold,
+                                                 metric=maze.maze_novelty_metric)
+        trial_out_dir = os.path.join(out_dir, str(t))
+        os.makedirs(trial_out_dir, exist_ok=True)
+        soulution_found = run_experiment( config_file=config_path, 
+                                        maze_env=maze_env, 
+                                        novelty_archive=novelty_archive,
+                                        trial_out_dir=trial_out_dir,
+                                        n_generations=args.generations,
+                                        args=args,
+                                        save_results=True,
+                                        silent=True)
+        print("\n------ Trial %d complete, solution found: %s ------\n" % (t, soulution_found))

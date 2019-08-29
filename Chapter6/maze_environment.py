@@ -28,6 +28,10 @@ def maze_novelty_metric(first_item, second_item):
     if not (hasattr(first_item, "data") or hasattr(second_item, "data")):
         return NotImplemented
 
+    if len(first_item.data) != len(second_item.data):
+        # can not be compared
+        return 0.0
+
     diff_accum = 0.0
     size = len(first_item.data)
     for i in range(size):
@@ -35,6 +39,32 @@ def maze_novelty_metric(first_item, second_item):
         diff_accum += diff
     
     return diff_accum / float(size)
+
+def maze_novelty_metric_euclidean(first_item, second_item):
+    """
+    The function to calculate the novelty metric score as a distance between two
+    data vectors in provided NoveltyItems
+    Arguments:
+        first_item:     The first NoveltyItem
+        second_item:    The second NoveltyItem
+    Returns:
+        The novelty metric as a distance between two
+        data vectors in provided NoveltyItems
+    """
+    if not (hasattr(first_item, "data") or hasattr(second_item, "data")):
+        return NotImplemented
+
+    if len(first_item.data) != len(second_item.data):
+        # can not be compared
+        return 0.0
+
+    diff_accum = 0.0
+    size = len(first_item.data)
+    for i in range(size):
+        diff = (first_item.data[i] - second_item.data[i])
+        diff_accum += (diff * diff)
+    
+    return math.sqrt(diff_accum)
 
 class MazeEnvironment:
     """
@@ -290,7 +320,7 @@ def read_environment(file_path):
     # create and return the maze environment
     return MazeEnvironment(agent=maze_agent, walls=walls, exit_point=maze_exit)
 
-def maze_simulation_evaluate(env, net, time_steps, n_item=None, path_points=None):
+def maze_simulation_evaluate(env, net, time_steps, mcns=0.0, n_item=None, path_points=None):
     """
     The function to evaluate maze simulation for specific environment
     and controll ANN provided. The results will be saved into provided
@@ -299,6 +329,7 @@ def maze_simulation_evaluate(env, net, time_steps, n_item=None, path_points=None
         env:            The maze configuration environment.
         net:            The maze solver agent's control ANN.
         time_steps:     The number of time steps for maze simulation.
+        mcns:           The minimal criteria fitness value.
         n_item:         The NoveltyItem to store evaluation results.
         path_points:    The holder for path points collected during simulation. If
                         provided None then nothing will be collected.
@@ -337,6 +368,10 @@ def maze_simulation_evaluate(env, net, time_steps, n_item=None, path_points=None
         fitness = (env.initial_distance - distance) / env.initial_distance
         if fitness <= 0:
             fitness = 0.01
+
+    # Use minimal criteria fitness value to signal if genome should be included into population
+    if fitness < mcns:
+        fitness = -1 # mark genome to be excluded
 
     if n_item is not None:
         n_item.fitness = fitness

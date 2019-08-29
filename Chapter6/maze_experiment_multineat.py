@@ -188,7 +188,7 @@ def run_experiment(params, maze_env, novelty_archive, trial_out_dir, args=None, 
         True if experiment finished with successful solver found. 
     """
     # set random seed
-    seed = 1563440677#int(time.time())#1562938287#42#1563358622#1559231616#
+    seed = 1564154705#int(time.time())#1562938287#42#1563358622#1559231616#
     random.seed(seed)
 
     # Create Population
@@ -238,7 +238,7 @@ def run_experiment(params, maze_env, novelty_archive, trial_out_dir, args=None, 
         print("Species count: %d" % len(pop.Species))
         print("Generation elapsed time: %.3f sec" % (gen_elapsed_time))
         print("Best objective fitness ever: %f, genome ID: %d" % (best_ever_goal_fitness, best_id))
-        print("\n****************************\n" )
+        print("Best novelty score: %f, genome ID: %d\n" % (pop.GetBestFitnessEver(), pop.GetBestGenome().GetID()))
 
     elapsed_time = time.time() - start_time
 
@@ -257,7 +257,7 @@ def run_experiment(params, maze_env, novelty_archive, trial_out_dir, args=None, 
     print("Random seed:", seed)
     print("Trial elapsed time: %.3f sec" % (elapsed_time))
     print("Best objective fitness: %f, genome ID: %d" % (best_ever_goal_fitness, best_genome.GetID()))
-    print("Best novelty score: %f, genome ID: %d" % (pop.GetBestFitnessEver(), pop.GetBestGenome().GetID()))
+    print("Best novelty score: %f, genome ID: %d\n" % (pop.GetBestFitnessEver(), pop.GetBestGenome().GetID()))
 
     # Visualize the experiment results
     if not silent or solution_found:
@@ -369,7 +369,7 @@ if __name__ == '__main__':
 
     # Create novelty archive
     novelty_archive = archive.NoveltyArchive(threshold=args.ns_threshold,
-                                        metric=maze.maze_novelty_metric)
+                                        metric=maze.maze_novelty_metric_euclidean)
 
     print("Starting the %s maze experiment (Novelty Search) with MultiNEAT" % args.maze)
     run_experiment( params=create_params(),
