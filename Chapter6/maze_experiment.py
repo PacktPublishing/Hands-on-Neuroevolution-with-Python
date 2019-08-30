@@ -172,7 +172,7 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, args=N
         True if experiment finished with successful solver found. 
     """
     # set random seed
-    seed = int(time.time())#1559231616#1562938287#42#1563358622#1559231616#1563440677#
+    seed = int(time.time())
     random.seed(seed)
     print("Selected random seed:", seed)
 
@@ -219,7 +219,7 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, args=N
     print("Trial elapsed time: %.3f sec" % (elapsed_time))
 
     # Visualize the experiment results
-    show_results = not silent or solution_found
+    show_results = not silent
     if save_results or show_results:
         node_names =   {-1:'RF_R', -2:'RF_FR', -3:'RF_F', -4:'RF_FL', -5:'RF_L', -6: 'RF_B', 
                         -7:'RAD_F', -8:'RAD_L', -9:'RAD_B', -10:'RAD_R', 
@@ -229,9 +229,7 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, args=N
             visualize.draw_maze_records(maze_env, trial_sim.record_store.records, view=show_results)
         else:
             visualize.draw_maze_records(maze_env, trial_sim.record_store.records, 
-                                        view=show_results, 
-                                        width=args.width,
-                                        height=args.height,
+                                        view=show_results, width=args.width, height=args.height,
                                         filename=os.path.join(trial_out_dir, 'maze_records.svg'))
         visualize.plot_stats(stats, ylog=False, view=show_results, filename=os.path.join(trial_out_dir, 'avg_fitness.svg'))
         visualize.plot_species(stats, view=show_results, filename=os.path.join(trial_out_dir, 'speciation.svg'))
