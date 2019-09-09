@@ -19,11 +19,47 @@ import numpy as np
 import MultiNEAT as NEAT
 from MultiNEAT.viz import Draw
 
+# The test environment
+import vd_environment as vd_env
+
 # The helper used to visualize experiment results
 import utils
 
-def run_experiment(params, trial_out_dir, args=None, n_generations=100, 
-                    save_results=False, silent=False):
+def eval_individual(genome, substrate, vd_environment):
+    """
+    The funtciton to evaluate fitness of the individual CPPN genome by creating
+    the substrate with topology based on the CPPN output.
+    Arguments:
+        genome:         The CPPN genome
+        substrate:      The substrate to build control ANN
+        vd_environment: The test visual discrimination environment
+    Returns:
+
+    """
+    substrate.PrintInfo()
+    # Create ANN from provided CPPN genome and substrate
+    net = NEAT.NeuralNetwork()
+    genome.BuildHyperNEATPhenotype(net, substrate)
+
+    fitness = vd_environment.evaluate_net(net)
+
+    return fitness
+    
+
+def eval_genomes(genomes, substrate, vd_environment, generation):
+    best_genome = None
+    max_fitness = 0
+    for genome in genomes:
+        fitness = eval_individual(genome, substrate, vd_environment)
+        if fitness > max_fitness:
+            max_fitness = fitness
+            best_genome = genome
+    
+    return best_genome, max_fitness
+
+
+def run_experiment(params, vd_environment, trial_out_dir, num_dimensions=11, n_generations=100, 
+                    save_results=False, silent=False, args=None):
     """
     The function to run the experiment against hyper-parameters 
     defined in the provided configuration file.
@@ -31,7 +67,9 @@ def run_experiment(params, trial_out_dir, args=None, n_generations=100,
     important statistics of neuroevolution process execution.
     Arguments:
         params:             The NEAT parameters
+        vd_environment:     The environment to test visual discrimination
         trial_out_dir:      The directory to store outputs for this trial
+        num_dimensions:     The dimensionsionality of visual field
         n_generations:      The number of generations to execute.
         save_results:       The flag to control if intermdiate results will be saved.
         silent:             If True than no intermediary outputs will be
@@ -40,11 +78,80 @@ def run_experiment(params, trial_out_dir, args=None, n_generations=100,
     Returns:
         True if experiment finished with successful solver found. 
     """
+    # random seed
+    seed = int(time.time())
 
-    substrate = create_substrate(11)
-    substrate.PrintInfo()
+    # Create substrate
+    substrate = create_substrate(num_dimensions)
 
-    print(substrate.GetMinCPPNInputs(), substrate.GetMinCPPNOutputs(), " Max Dimensions:", len(substrate.m_output_coords[0]))
+    # Create CPPN genome and population
+    g = NEAT.Genome(0,
+                    substrate.GetMinCPPNInputs(),
+                    0,
+                    substrate.GetMinCPPNOutputs(),
+                    False,
+                    NEAT.ActivationFunction.TANH,
+                    NEAT.ActivationFunction.TANH,
+                    0,
+                    params, 0)
+
+    pop = NEAT.Population(g, params, True, 1.0, seed)
+    pop.RNG.Seed(seed)
+
+    # Run for up to N generations.
+    start_time = time.time()
+    best_genome_ser = None
+    best_ever_goal_fitness = 0
+    best_id = -1
+    solution_found = False
+
+    for generation in range(n_generations):
+        gen_time = time.time()
+        # get list of current genomes
+        genomes = NEAT.GetGenomeList(pop)
+
+        # evaluate genomes
+        genome, fitness = eval_genomes(genomes, vd_environment=vd_environment, 
+                                        substrate=substrate, generation=generation)
+
+        # store the best genome
+        if solution_found or best_ever_goal_fitness < fitness:
+            best_genome_ser = pickle.dumps(genome)
+            best_ever_goal_fitness = fitness
+            best_id = genome.GetID()
+        
+        if solution_found:
+            print('Solution found at generation: %d, best fitness: %f, species count: %d' % (generation, fitness, len(pop.Species)))
+            break
+
+        # advance to the next generation
+        pop.Epoch()
+
+        # print statistics
+        gen_elapsed_time = time.time() - gen_time
+        print("\n****** Generation: %d ******\n" % generation)
+        print("Best objective fitness: %f, genome ID: %d" % (fitness, best_id))
+        print("Species count: %d" % len(pop.Species))
+        print("Generation elapsed time: %.3f sec" % (gen_elapsed_time))
+        print("Best objective fitness ever: %f, genome ID: %d" % (best_ever_goal_fitness, best_id))
+        print("Best novelty score: %f, genome ID: %d\n" % (pop.GetBestFitnessEver(), pop.GetBestGenome().GetID()))
+
+    elapsed_time = time.time() - start_time
+
+    best_genome = pickle.loads(best_genome_ser)
+
+    # write best genome to the file
+    best_genome_file = os.path.join(trial_out_dir, "best_genome.pickle")
+    with open(best_genome_file, 'wb') as genome_file:
+        pickle.dump(best_genome, genome_file)
+
+    # Print experiment statistics
+    print("Random seed:", seed)
+    print("Trial elapsed time: %.3f sec" % (elapsed_time))
+    print("Best objective fitness: %f, genome ID: %d" % (best_ever_goal_fitness, best_genome.GetID()))
+    print("Best novelty score: %f, genome ID: %d\n" % (pop.GetBestFitnessEver(), pop.GetBestGenome().GetID()))
+
+    return solution_found
 
 def create_substrate(dim):
     """
@@ -54,8 +161,8 @@ def create_substrate(dim):
         dim:    The dimensions accross X, Y axis of the sheet
     """
     # Building sheet configurations of inputs and outputs
-    inputs = create_sheet_space(-1, 1, 11, -1)
-    outputs = create_sheet_space(-1, 1, 11, 1)
+    inputs = create_sheet_space(-1, 1, dim, -1)
+    outputs = create_sheet_space(-1, 1, dim, 1)
 
     substrate = NEAT.Substrate( inputs,
                                 [], # hidden
@@ -163,15 +270,28 @@ if __name__ == '__main__':
     # Clean results of previous run if any or init the ouput directory
     utils.clear_output(out_dir)
 
+    # create the test environment
+    VISUAL_FIELD_SIZE = 11
+    env = vd_env.VDEnvironment(small_object_positions=[1, 3, 5, 7, 9],
+                                big_object_offset=5,
+                                field_size=VISUAL_FIELD_SIZE)
+    for vf in env.data_set:
+        print("------", vf.big_pos)
+        print(vf.data)
+
+    exit(0)
+
     # Run the maze experiment trials
     print("Starting Visual Discrimination experiment with MultiNEAT, for %d trials" % (args.trials))
     for t in range(args.trials):
         print("\n\n----- Starting Trial: %d ------" % (t))
         trial_out_dir = os.path.join(out_dir, str(t))
         os.makedirs(trial_out_dir, exist_ok=True)
-        soulution_found = run_experiment( params=create_params(),
+        soulution_found = run_experiment(params=create_params(),
+                                        vd_environment = env,
                                         trial_out_dir=trial_out_dir,
                                         n_generations=args.generations,
+                                        num_dimensions=VISUAL_FIELD_SIZE,
                                         args=args,
                                         save_results=True,
                                         silent=True)
