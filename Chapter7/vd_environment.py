@@ -1,6 +1,8 @@
 #
 # The script to maintain the visual discriminator environment
 #
+import math
+
 import numpy as np
 
 
@@ -24,7 +26,7 @@ class VisualField:
                 self._set_point(big_pos[0] + xo, big_pos[1] + yo)
 
     def get_data(self):
-        return self.data.flatten()
+        return self.data.flatten().tolist()
 
     def _set_point(self, x, y):
         px, py = x, y
@@ -50,15 +52,69 @@ class VDEnvironment:
         self.b_object_offset = big_object_offset
         self.field_size = field_size
 
+        self.max_dist = self._distance((0, 0), (field_size - 1, field_size - 1))
+
         # create test data set
         self._create_data_set()
 
     def evaluate_net(self, net):
         """
         The function to evaluate performance of the provided network
-        against the data set
+        against the dataset
         """
+        depth = 1 # we just have 2 layers
+
+        avg_dist = 0
+
+        # do stuff and return the fitness
+        for ds in self.data_set:
+            net.Flush()
+            # prepare input
+            inputs = ds.get_data()
+            #input.append(1.0) # add bias
+
+            net.Input(inputs)
+            # activate
+            [net.Activate() for _ in range(depth)]
+
+            # get outputs
+            outputs = net.Output()
+            x, y = self._big_object_coordinates(outputs)
+
+            # find the distance to the big object
+            dist = self._distance((x, y), ds.big_pos)
+            avg_dist = avg_dist + dist
+
+        avg_dist /= float(self.field_size * self.field_size)
         
+        # normalized error
+        error = avg_dist / self.max_dist
+        # fitness
+        fitness = 1.0 - error
+
+        return fitness
+
+    def _distance(self, source, target):
+        """
+        Function to find Euclidean distance between source and target points
+        """
+        dist = (source[0] - target[0]) * (source[0] - target[0]) + (source[1] - target[1]) * (source[1] - target[1])
+        return math.sqrt(dist)
+
+    def _big_object_coordinates(self, outputs):
+        max_activation = -100.0
+        max_index = -1
+        for i, out in enumerate(outputs):
+            if out > max_activation:
+                max_activation = out
+                max_index = i
+
+        # estimate maxcimal activation's coordinates
+        x = max_index % self.field_size
+        y = int(max_index / self.field_size)
+
+        return (x, y)
+
 
     def _create_visual_field(self, sx, sy, x_off, y_off):
         bx = sx + x_off

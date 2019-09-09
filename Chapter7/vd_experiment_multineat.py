@@ -14,6 +14,7 @@ import argparse
 import pickle
 
 import numpy as np
+import cv2
 
 # The MultiNEAT specific
 import MultiNEAT as NEAT
@@ -24,6 +25,9 @@ import vd_environment as vd_env
 
 # The helper used to visualize experiment results
 import utils
+
+# The fitness threshold
+FITNESS_THRESHOLD = 1.0
 
 def eval_individual(genome, substrate, vd_environment):
     """
@@ -36,13 +40,12 @@ def eval_individual(genome, substrate, vd_environment):
     Returns:
 
     """
-    substrate.PrintInfo()
+    #substrate.PrintInfo()
     # Create ANN from provided CPPN genome and substrate
     net = NEAT.NeuralNetwork()
     genome.BuildHyperNEATPhenotype(net, substrate)
 
     fitness = vd_environment.evaluate_net(net)
-
     return fitness
     
 
@@ -51,6 +54,8 @@ def eval_genomes(genomes, substrate, vd_environment, generation):
     max_fitness = 0
     for genome in genomes:
         fitness = eval_individual(genome, substrate, vd_environment)
+        genome.SetFitness(fitness)
+
         if fitness > max_fitness:
             max_fitness = fitness
             best_genome = genome
@@ -90,8 +95,8 @@ def run_experiment(params, vd_environment, trial_out_dir, num_dimensions=11, n_g
                     0,
                     substrate.GetMinCPPNOutputs(),
                     False,
-                    NEAT.ActivationFunction.TANH,
-                    NEAT.ActivationFunction.TANH,
+                    NEAT.ActivationFunction.UNSIGNED_SIGMOID,
+                    NEAT.ActivationFunction.UNSIGNED_SIGMOID,
                     0,
                     params, 0)
 
@@ -106,6 +111,7 @@ def run_experiment(params, vd_environment, trial_out_dir, num_dimensions=11, n_g
     solution_found = False
 
     for generation in range(n_generations):
+        print("\n****** Generation: %d ******\n" % generation)
         gen_time = time.time()
         # get list of current genomes
         genomes = NEAT.GetGenomeList(pop)
@@ -114,6 +120,7 @@ def run_experiment(params, vd_environment, trial_out_dir, num_dimensions=11, n_g
         genome, fitness = eval_genomes(genomes, vd_environment=vd_environment, 
                                         substrate=substrate, generation=generation)
 
+        solution_found = fitness >= FITNESS_THRESHOLD
         # store the best genome
         if solution_found or best_ever_goal_fitness < fitness:
             best_genome_ser = pickle.dumps(genome)
@@ -129,12 +136,10 @@ def run_experiment(params, vd_environment, trial_out_dir, num_dimensions=11, n_g
 
         # print statistics
         gen_elapsed_time = time.time() - gen_time
-        print("\n****** Generation: %d ******\n" % generation)
-        print("Best objective fitness: %f, genome ID: %d" % (fitness, best_id))
+        print("Best fitness: %f, genome ID: %d" % (fitness, best_id))
         print("Species count: %d" % len(pop.Species))
         print("Generation elapsed time: %.3f sec" % (gen_elapsed_time))
-        print("Best objective fitness ever: %f, genome ID: %d" % (best_ever_goal_fitness, best_id))
-        print("Best novelty score: %f, genome ID: %d\n" % (pop.GetBestFitnessEver(), pop.GetBestGenome().GetID()))
+        print("Best fitness ever: %f, genome ID: %d" % (best_ever_goal_fitness, best_id))
 
     elapsed_time = time.time() - start_time
 
@@ -146,10 +151,30 @@ def run_experiment(params, vd_environment, trial_out_dir, num_dimensions=11, n_g
         pickle.dump(best_genome, genome_file)
 
     # Print experiment statistics
+    print("\nBest ever fitness: %f, genome ID: %d" % (best_ever_goal_fitness, best_id))
+    print("\nTrial elapsed time: %.3f sec" % (elapsed_time))
     print("Random seed:", seed)
-    print("Trial elapsed time: %.3f sec" % (elapsed_time))
-    print("Best objective fitness: %f, genome ID: %d" % (best_ever_goal_fitness, best_genome.GetID()))
-    print("Best novelty score: %f, genome ID: %d\n" % (pop.GetBestFitnessEver(), pop.GetBestGenome().GetID()))
+
+    # Visualize the experiment results
+    show_results = not silent
+    if save_results or show_results:
+        # render CPPN
+        net = NEAT.NeuralNetwork()
+        best_genome.BuildPhenotype(net)
+        img = np.zeros((500, 500, 3), dtype=np.uint8)
+        img += 10
+        NEAT.DrawPhenotype(img, (0, 0, 500, 500), net)
+        cv2.imshow("CPPN", img)
+
+        # Visualize best network's Pheotype
+        net = NEAT.NeuralNetwork()
+        best_genome.BuildESHyperNEATPhenotype(net, substrate, params)
+        img = np.zeros((500, 500, 3), dtype=np.uint8)
+        img += 10
+
+        NEAT.DrawPhenotype(img, (0, 0, 500, 500), net, substrate=True)
+        cv2.imshow("NN", img)
+        cv2.waitKey(0)
 
     return solution_found
 
@@ -162,7 +187,7 @@ def create_substrate(dim):
     """
     # Building sheet configurations of inputs and outputs
     inputs = create_sheet_space(-1, 1, dim, -1)
-    outputs = create_sheet_space(-1, 1, dim, 1)
+    outputs = create_sheet_space(-1, 1, dim, 0)
 
     substrate = NEAT.Substrate( inputs,
                                 [], # hidden
@@ -208,7 +233,7 @@ def create_params():
     params.PopulationSize = 150
 
     params.DynamicCompatibility = True
-    params.CompatTreshold = 2.0
+    params.CompatTreshold = 3.0
     params.YoungAgeTreshold = 15
     params.SpeciesMaxStagnation = 100
     params.OldAgeTreshold = 35
@@ -222,7 +247,7 @@ def create_params():
     params.MutateAddLinkProb = 0.1
     params.MutateAddNeuronProb = 0.03
     params.MutateWeightsProb = 0.90
-    params.MaxWeight = 3.0
+    params.MaxWeight = 8.0
     params.WeightMutationMaxPower = 0.2
     params.WeightReplacementMaxPower = 1.0
 
@@ -231,20 +256,22 @@ def create_params():
     params.MinActivationA = 0.05
     params.MaxActivationA = 6.0
 
-    params.MutateNeuronActivationTypeProb = 0.03
+    params.MutateNeuronActivationTypeProb = 0.3
 
-    params.ActivationFunction_SignedSigmoid_Prob = 0.0
-    params.ActivationFunction_UnsignedSigmoid_Prob = 0.0
-    params.ActivationFunction_Tanh_Prob = 1.0
-    params.ActivationFunction_TanhCubic_Prob = 0.0
-    params.ActivationFunction_SignedStep_Prob = 1.0
-    params.ActivationFunction_UnsignedStep_Prob = 0.0
     params.ActivationFunction_SignedGauss_Prob = 1.0
+    params.ActivationFunction_SignedSigmoid_Prob = 1.0
+    params.ActivationFunction_SignedSine_Prob = 1.0
+    params.ActivationFunction_Linear_Prob = 1.0
+    
+    params.ActivationFunction_Tanh_Prob = 0.0
+    params.ActivationFunction_SignedStep_Prob = 0.0
+    params.ActivationFunction_UnsignedSigmoid_Prob = 0.0
+    params.ActivationFunction_TanhCubic_Prob = 0.0 
+    params.ActivationFunction_UnsignedStep_Prob = 0.0
     params.ActivationFunction_UnsignedGauss_Prob = 0.0
     params.ActivationFunction_Abs_Prob = 0.0
-    params.ActivationFunction_SignedSine_Prob = 1.0
     params.ActivationFunction_UnsignedSine_Prob = 0.0
-    params.ActivationFunction_Linear_Prob = 1.0
+    
 
     params.MutateNeuronTraitsProb = 0
     params.MutateLinkTraitsProb = 0
@@ -275,11 +302,6 @@ if __name__ == '__main__':
     env = vd_env.VDEnvironment(small_object_positions=[1, 3, 5, 7, 9],
                                 big_object_offset=5,
                                 field_size=VISUAL_FIELD_SIZE)
-    for vf in env.data_set:
-        print("------", vf.big_pos)
-        print(vf.data)
-
-    exit(0)
 
     # Run the maze experiment trials
     print("Starting Visual Discrimination experiment with MultiNEAT, for %d trials" % (args.trials))
