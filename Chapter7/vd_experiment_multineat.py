@@ -25,6 +25,9 @@ import vd_environment as vd_env
 
 # The helper used to visualize experiment results
 import utils
+from utils import Statistics
+import visualize
+
 
 # The fitness threshold
 FITNESS_THRESHOLD = 1.0
@@ -45,25 +48,27 @@ def eval_individual(genome, substrate, vd_environment):
     net = NEAT.NeuralNetwork()
     genome.BuildHyperNEATPhenotype(net, substrate)
 
-    fitness = vd_environment.evaluate_net(net)
-    return fitness
+    fitness, dist = vd_environment.evaluate_net(net)
+    return fitness, dist
     
 
 def eval_genomes(genomes, substrate, vd_environment, generation):
     best_genome = None
     max_fitness = 0
+    distances = []
     for genome in genomes:
-        fitness = eval_individual(genome, substrate, vd_environment)
+        fitness, dist = eval_individual(genome, substrate, vd_environment)
         genome.SetFitness(fitness)
+        distances.append(dist)
 
         if fitness > max_fitness:
             max_fitness = fitness
             best_genome = genome
     
-    return best_genome, max_fitness
+    return best_genome, max_fitness, distances
 
 
-def run_experiment(params, vd_environment, trial_out_dir, num_dimensions=11, n_generations=100, 
+def run_experiment(params, vd_environment, trial_out_dir, num_dimensions, n_generations=100, 
                     save_results=False, silent=False, args=None):
     """
     The function to run the experiment against hyper-parameters 
@@ -110,6 +115,7 @@ def run_experiment(params, vd_environment, trial_out_dir, num_dimensions=11, n_g
     best_id = -1
     solution_found = False
 
+    stats = Statistics()
     for generation in range(n_generations):
         print("\n****** Generation: %d ******\n" % generation)
         gen_time = time.time()
@@ -117,9 +123,10 @@ def run_experiment(params, vd_environment, trial_out_dir, num_dimensions=11, n_g
         genomes = NEAT.GetGenomeList(pop)
 
         # evaluate genomes
-        genome, fitness = eval_genomes(genomes, vd_environment=vd_environment, 
-                                        substrate=substrate, generation=generation)
+        genome, fitness, distances = eval_genomes(genomes, vd_environment=vd_environment, 
+                                                substrate=substrate, generation=generation)
 
+        stats.post_evaluate(max_fitness=fitness, distances=distances)
         solution_found = fitness >= FITNESS_THRESHOLD
         # store the best genome
         if solution_found or best_ever_goal_fitness < fitness:
@@ -158,23 +165,20 @@ def run_experiment(params, vd_environment, trial_out_dir, num_dimensions=11, n_g
     # Visualize the experiment results
     show_results = not silent
     if save_results or show_results:
-        # render CPPN
+        # Visualize activations from the best genome
         net = NEAT.NeuralNetwork()
-        best_genome.BuildPhenotype(net)
-        img = np.zeros((500, 500, 3), dtype=np.uint8)
-        img += 10
-        NEAT.DrawPhenotype(img, (0, 0, 500, 500), net)
-        cv2.imshow("CPPN", img)
+        best_genome.BuildHyperNEATPhenotype(net, substrate)
+        # select random visual field
+        index = random.randint(0, len(vd_environment.data_set) - 1)
+        vf = vd_environment.data_set[index]
+        # draw activations
+        outputs, x, y = vd_environment.evaluate_net_vf(net, vf)
+        visualize.draw_activations(outputs, found_object=(x, y), vf=vf,
+                                    dimns=num_dimensions, view=show_results, 
+                                    filename=os.path.join(trial_out_dir, "best_activations.svg"))
 
-        # Visualize best network's Pheotype
-        net = NEAT.NeuralNetwork()
-        best_genome.BuildESHyperNEATPhenotype(net, substrate, params)
-        img = np.zeros((500, 500, 3), dtype=np.uint8)
-        img += 10
-
-        NEAT.DrawPhenotype(img, (0, 0, 500, 500), net, substrate=True)
-        cv2.imshow("NN", img)
-        cv2.waitKey(0)
+        # Visualize statistics
+        visualize.plot_stats(stats, ylog=False, view=show_results, filename=os.path.join(trial_out_dir, 'avg_fitness.svg'))
 
     return solution_found
 
@@ -316,5 +320,5 @@ if __name__ == '__main__':
                                         num_dimensions=VISUAL_FIELD_SIZE,
                                         args=args,
                                         save_results=True,
-                                        silent=True)
+                                        silent=False)
     print("\n------ Trial %d complete, solution found: %s ------\n" % (t, soulution_found))
