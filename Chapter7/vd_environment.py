@@ -61,25 +61,15 @@ class VDEnvironment:
         """
         The function to evaluate performance of the provided network
         against the dataset
+        Returns:
+            the fitness score and average Euclidean distance between found and target objects
         """
-        depth = 1 # we just have 2 layers
-
         avg_dist = 0
 
         # do stuff and return the fitness
         for ds in self.data_set:
-            net.Flush()
-            # prepare input
-            inputs = ds.get_data()
-            #input.append(1.0) # add bias
-
-            net.Input(inputs)
-            # activate
-            [net.Activate() for _ in range(depth)]
-
-            # get outputs
-            outputs = net.Output()
-            x, y = self._big_object_coordinates(outputs)
+            # evaluate and get outputs
+            outputs, x, y = self.evaluate_net_vf(net, ds)
 
             # find the distance to the big object
             dist = self._distance((x, y), ds.big_pos)
@@ -92,7 +82,28 @@ class VDEnvironment:
         # fitness
         fitness = 1.0 - error
 
-        return fitness
+        return fitness, avg_dist
+
+    def evaluate_net_vf(self, net, vf):
+        """
+        The function to evaluate provided ANN against specific VisualField
+        """
+        depth = 1 # we just have 2 layers
+
+        net.Flush()
+        # prepare input
+        inputs = vf.get_data()
+
+        net.Input(inputs)
+        # activate
+        [net.Activate() for _ in range(depth)]
+
+        # get outputs
+        outputs = net.Output()
+        # find coordinates of big object
+        x, y = self._big_object_coordinates(outputs)
+
+        return outputs, x, y
 
     def _distance(self, source, target):
         """
