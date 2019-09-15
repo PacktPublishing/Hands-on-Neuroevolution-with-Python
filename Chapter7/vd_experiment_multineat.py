@@ -52,6 +52,19 @@ def eval_individual(genome, substrate, vd_environment):
     
 
 def eval_genomes(genomes, substrate, vd_environment, generation):
+    """
+    The function to evaluate fitness of the entire population against test 
+    visual descriminator environment using the provided substrate 
+    configuration of the descriminatorANN
+    Arguments:
+        genomes:        The list of genomes in the population
+        substrate:      The substrate configuration of the descriminatorANN
+        vd_environment: The test visual descriminator environment
+        generation:     The id of current generation
+    Returns:
+        the tuple (best_genome, max_fitness, distances) with best CPPN genome, 
+        the maximal fitness score value and the list of erro distances for each genome
+    """
     best_genome = None
     max_fitness = 0
     distances = []
