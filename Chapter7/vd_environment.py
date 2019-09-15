@@ -66,18 +66,18 @@ class VDEnvironment:
         """
         avg_dist = 0
 
-        # do stuff and return the fitness
+        # evaluate predicted positions
         for ds in self.data_set:
             # evaluate and get outputs
-            outputs, x, y = self.evaluate_net_vf(net, ds)
+            _, x, y = self.evaluate_net_vf(net, ds)
 
             # find the distance to the big object
             dist = self._distance((x, y), ds.big_pos)
             avg_dist = avg_dist + dist
 
-        avg_dist /= float(self.field_size * self.field_size)
+        avg_dist /= float(len(self.data_set))
         
-        # normalized error
+        # normalized detection error
         error = avg_dist / self.max_dist
         # fitness
         fitness = 1.0 - error
@@ -120,7 +120,7 @@ class VDEnvironment:
                 max_activation = out
                 max_index = i
 
-        # estimate maxcimal activation's coordinates
+        # estimate the maximal activation's coordinates
         x = max_index % self.field_size
         y = int(max_index / self.field_size)
 
