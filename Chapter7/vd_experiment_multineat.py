@@ -18,7 +18,6 @@ import cv2
 
 # The MultiNEAT specific
 import MultiNEAT as NEAT
-from MultiNEAT.viz import Draw
 
 # The test environment
 import vd_environment as vd_env
@@ -165,7 +164,14 @@ def run_experiment(params, vd_environment, trial_out_dir, num_dimensions, n_gene
     # Visualize the experiment results
     show_results = not silent
     if save_results or show_results:
-        # Visualize activations from the best genome
+        # Draw CPPN network graph
+        net = NEAT.NeuralNetwork()
+        best_genome.BuildPhenotype(net)
+        visualize.draw_net(net, view=show_results, node_names=None, directory=trial_out_dir, fmt='svg')
+
+        print("\nCPPN nodes: %d, connections: %d" % (len(net.neurons), len(net.connections)))
+
+         # Visualize activations from the best genome
         net = NEAT.NeuralNetwork()
         best_genome.BuildHyperNEATPhenotype(net, substrate)
         # select random visual field
