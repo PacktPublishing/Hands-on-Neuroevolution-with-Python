@@ -181,7 +181,6 @@ def run_experiment(params, vd_environment, trial_out_dir, num_dimensions, n_gene
         net = NEAT.NeuralNetwork()
         best_genome.BuildPhenotype(net)
         visualize.draw_net(net, view=show_results, node_names=None, directory=trial_out_dir, fmt='svg')
-
         print("\nCPPN nodes: %d, connections: %d" % (len(net.neurons), len(net.connections)))
 
          # Visualize activations from the best genome
@@ -189,6 +188,8 @@ def run_experiment(params, vd_environment, trial_out_dir, num_dimensions, n_gene
         best_genome.BuildHyperNEATPhenotype(net, substrate)
         # select random visual field
         index = random.randint(0, len(vd_environment.data_set) - 1)
+        print("\nRunning test evaluation against random visual field:", index)
+        print("Substrate nodes: %d, connections: %d" % (len(net.neurons), len(net.connections)))
         vf = vd_environment.data_set[index]
         # draw activations
         outputs, x, y = vd_environment.evaluate_net_vf(net, vf)
