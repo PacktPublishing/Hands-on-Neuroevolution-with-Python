@@ -79,7 +79,7 @@ def plot_stats(statistics, ylog=False, view=False, filename='avg_distance.svg'):
     ax1.plot(generation, avg_distance - stdev_distance, 'g-.', label="-1 sd")
     ax1.plot(generation, avg_distance + stdev_distance, 'g-.', label="+1 sd")
     ax1.set_xlabel("Generations")
-    ax1.set_ylabel("Distance")
+    ax1.set_ylabel("Avgerage Error")
     ax1.grid()
     ax1.legend(loc="best")
 
