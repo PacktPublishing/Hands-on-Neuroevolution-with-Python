@@ -1,6 +1,6 @@
 #
 # The script to run Visual Discrimination experiment using HyperNEAT method
-# using the MultiNEAT library
+# from the MultiNEAT library
 #
 
 # The Python standard library import
@@ -306,7 +306,7 @@ def create_params():
 
 if __name__ == '__main__':
     # read command line parameters
-    parser = argparse.ArgumentParser(description="The Visual Discrimination experiment runner (Novelty Search).")
+    parser = argparse.ArgumentParser(description="The Visual Discrimination experiment runner (HyperNEAT).")
     parser.add_argument('-g', '--generations', default=500, type=int, 
                         help='The number of generations for the evolutionary process.')
     parser.add_argument('-t', '--trials', type=int, default=1, help='The number of trials to run')
