@@ -58,12 +58,12 @@ class RetinaEnvironment:
         # populate data set
         self.create_data_set()
         
-    def evaluate_net(self, net, depth = 3):
+    def evaluate_net(self, net, depth = 3, max_fitness = 1000.0):
         """
         The function to evaluate performance of the provided network
         against the dataset
         Returns:
-            the fitness score
+            the fitness score and error
         """
         error = 0.0
         # Evaluate the detector ANN against 256 combintaions of the left and the right visual objects
@@ -73,8 +73,8 @@ class RetinaEnvironment:
                 error += self._evaluate(net, left, right, depth)
 
         # calculate the fitness score
-        fitness = 1000.0 / (1.0 + error)
-        return fitness
+        fitness = max_fitness / (1.0 + error)
+        return fitness, error
 
     def _evaluate(self, net, left, right, depth):
         """
@@ -82,7 +82,7 @@ class RetinaEnvironment:
         """
         net.Flush()
         # prepare input
-        inputs = left + right
+        inputs = left.get_data() + right.get_data()
 
         net.Input(inputs)
         # activate
