@@ -58,6 +58,45 @@ class RetinaEnvironment:
         # populate data set
         self.create_data_set()
         
+    def evaluate_net(self, net, depth = 3):
+        """
+        The function to evaluate performance of the provided network
+        against the dataset
+        Returns:
+            the fitness score
+        """
+        error = 0.0
+        for left in self.visual_objects:
+            for right in self.visual_objects:
+                error += self._evaluate(net, left, right, depth)
+
+        # calculate the fitness score
+        fitness = 1000.0 / (1.0 + error)
+        return fitness
+
+    def _evaluate(self, net, left, right, depth):
+        """
+        The function to evaluate ANN against specific visual objects at lEFT and RIGHT side
+        """
+        net.Flush()
+        # prepare input
+        inputs = left + right
+
+        net.Input(inputs)
+        # activate
+        [net.Activate() for _ in range(depth)]
+
+        # get outputs
+        outputs = net.Output()
+
+        # set ground truth
+        left_target = 1.0 if left.side == Side.LEFT else -1.0
+        right_target = 1.0 if right.side == Side.RIGHT else -1.0
+        targets = [left_target, right_target]
+
+        # find error as a distance between outputs and groud truth
+        error = (outputs[0] - targets[0]) * (outputs[0] - targets[0]) + (outputs[1] - targets[1]) * (outputs[1] - targets[1])
+        return error
 
     def create_data_set(self):
         # set left side objects
