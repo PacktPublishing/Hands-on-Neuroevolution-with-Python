@@ -66,6 +66,8 @@ class RetinaEnvironment:
             the fitness score
         """
         error = 0.0
+        # Evaluate the detector ANN against 256 combintaions of the left and the right visual objects
+        # at correct and incorrect sides of retina
         for left in self.visual_objects:
             for right in self.visual_objects:
                 error += self._evaluate(net, left, right, depth)
