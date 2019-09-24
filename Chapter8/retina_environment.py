@@ -66,15 +66,21 @@ class RetinaEnvironment:
             the fitness score and error
         """
         error = 0.0
+        count = 0.0
         # Evaluate the detector ANN against 256 combintaions of the left and the right visual objects
         # at correct and incorrect sides of retina
         for left in self.visual_objects:
             for right in self.visual_objects:
                 error += self._evaluate(net, left, right, depth)
+                count += 1.0
 
+        
         # calculate the fitness score
         fitness = max_fitness / (1.0 + error)
-        return fitness, error
+        avg_error = error / count
+
+        # print(avg_error, error)
+        return fitness, avg_error
 
     def _evaluate(self, net, left, right, depth):
         """
@@ -83,6 +89,7 @@ class RetinaEnvironment:
         net.Flush()
         # prepare input
         inputs = left.get_data() + right.get_data()
+        inputs.append(0.5) # the bias
 
         net.Input(inputs)
         # activate
@@ -92,9 +99,11 @@ class RetinaEnvironment:
         outputs = net.Output()
 
         # set ground truth
-        left_target = 1.0 if left.side == Side.LEFT else -1.0
-        right_target = 1.0 if right.side == Side.RIGHT else -1.0
+        left_target = 1.0 if left.side == Side.LEFT else 0.0
+        right_target = 1.0 if right.side == Side.RIGHT else 0.0
         targets = [left_target, right_target]
+
+        # print(outputs[0], outputs[1])
 
         # find error as a distance between outputs and groud truth
         error = (outputs[0] - targets[0]) * (outputs[0] - targets[0]) + (outputs[1] - targets[1]) * (outputs[1] - targets[1])
