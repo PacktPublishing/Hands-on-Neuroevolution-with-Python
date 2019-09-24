@@ -70,8 +70,8 @@ def plot_stats(statistics, ylog=False, view=False, filename='avg_distance.svg'):
     """ Plots the population's best fitness and average distances. """
 
     generation = range(len(statistics.most_fit_scores))
-    avg_distance = statistics.get_distance_mean()
-    stdev_distance = statistics.get_distance_stdev()
+    avg_distance = statistics.get_error_mean()
+    stdev_distance = statistics.get_error_stdev()
 
     fig, ax1 = plt.subplots()
     # Plot average distance
