@@ -106,13 +106,14 @@ def run_experiment(params, rt_environment, trial_out_dir, n_generations=100,
     # Create CPPN genome and population
     g = NEAT.Genome(0,
                     substrate.GetMinCPPNInputs(),
-                    0,
+                    2, # hidden units
                     substrate.GetMinCPPNOutputs(),
                     False,
                     NEAT.ActivationFunction.UNSIGNED_SIGMOID,
                     NEAT.ActivationFunction.SIGNED_GAUSS, # The initial activation type for hidden 
-                    0,
-                    params, 0)
+                    1, # hidden layers seed
+                    params, 
+                    1) # one hidden layer
 
     pop = NEAT.Population(g, params, True, 1.0, seed)
     pop.RNG.Seed(seed)
@@ -179,14 +180,18 @@ def run_experiment(params, rt_environment, trial_out_dir, n_generations=100,
         # Draw CPPN network graph
         net = NEAT.NeuralNetwork()
         best_genome.BuildPhenotype(net)
-        visualize.draw_net(net, view=show_results, node_names=None, filename="cppn_graph.svg", directory=trial_out_dir, fmt='svg')
+        visualize.draw_net(net, view=False, node_names=None, filename="cppn_graph.svg", directory=trial_out_dir, fmt='svg')
         print("\nCPPN nodes: %d, connections: %d" % (len(net.neurons), len(net.connections)))
 
          # Draw the substrate network graph
         net = NEAT.NeuralNetwork()
         best_genome.BuildESHyperNEATPhenotype(net, substrate, params)
-        visualize.draw_net(net, view=show_results, node_names=None, filename="substrate_graph.svg", directory=trial_out_dir, fmt='svg')
+        visualize.draw_net(net, view=False, node_names=None, filename="substrate_graph.svg", directory=trial_out_dir, fmt='svg')
         print("\nSubstrate nodes: %d, connections: %d" % (len(net.neurons), len(net.connections)))
+        inputs = net.NumInputs()
+        outputs = net.NumOutputs()
+        hidden = len(net.neurons) - net.NumInputs() - net.NumOutputs()
+        print("\n\tinputs: %d, outputs: %d, hidden: %d" % (inputs, outputs, hidden))
 
         # Visualize statistics
         visualize.plot_stats(stats, ylog=False, view=show_results, filename=os.path.join(trial_out_dir, 'avg_fitness.svg'))
@@ -203,7 +208,8 @@ def create_substrate():
     x_space = np.linspace(-1.0, 1.0, num=4)
     inputs = [
         (x_space[0], 0.0, 1.0), (x_space[1], 0.0, 1.0), (x_space[0], 0.0, -1.0), (x_space[1], 0.0, -1.0), # the left side
-        (x_space[2], 0.0, 1.0), (x_space[3], 0.0, 1.0), (x_space[2], 0.0, -1.0), (x_space[3], 0.0, -1.0)  # the right side
+        (x_space[2], 0.0, 1.0), (x_space[3], 0.0, 1.0), (x_space[2], 0.0, -1.0), (x_space[3], 0.0, -1.0),  # the right side
+        (0,0,0) # the bias
         ]
     # The output layer
     outputs = [(-1.0, 1.0, 0.0), (1.0, 1.0, 0.0)]
@@ -227,7 +233,7 @@ def create_substrate():
     substrate.m_output_nodes_activation = NEAT.ActivationFunction.UNSIGNED_SIGMOID
 
     substrate.m_with_distance = True # send connection length to the CPPN as a parameter
-    substrate.m_max_weight_and_bias = 3.0
+    substrate.m_max_weight_and_bias = 8.0
 
     return substrate
 
@@ -236,7 +242,7 @@ def create_params():
     params.PopulationSize = 300
 
     params.DynamicCompatibility = True
-    params.CompatTreshold = 2.0
+    params.CompatTreshold = 3.0
     params.YoungAgeTreshold = 15
     params.SpeciesMaxStagnation = 100
     params.OldAgeTreshold = 35
@@ -247,7 +253,7 @@ def create_params():
     params.MutateRemLinkProb = 0.02
     params.RecurrentProb = 0
     params.OverallMutationRate = 0.15
-    params.MutateAddLinkProb = 0.03
+    params.MutateAddLinkProb = 0.1#0.03
     params.MutateAddNeuronProb = 0.03
     params.MutateWeightsProb = 0.90
     params.MaxWeight = 8.0
@@ -264,9 +270,9 @@ def create_params():
     params.ActivationFunction_SignedStep_Prob = 1.0
     params.ActivationFunction_Linear_Prob = 1.0
     params.ActivationFunction_SignedSine_Prob = 1.0
-    params.ActivationFunction_Tanh_Prob = 1.0
+    params.ActivationFunction_SignedSigmoid_Prob = 1.0
 
-    params.ActivationFunction_SignedSigmoid_Prob = 0.0
+    params.ActivationFunction_Tanh_Prob = 0.0
     params.ActivationFunction_UnsignedSigmoid_Prob = 0.0
     params.ActivationFunction_TanhCubic_Prob = 0.0
     params.ActivationFunction_UnsignedStep_Prob = 0.0
@@ -277,7 +283,7 @@ def create_params():
     params.MutateNeuronTraitsProb = 0
     params.MutateLinkTraitsProb = 0
 
-    params.DivisionThreshold = 0.5
+    params.DivisionThreshold = 0.03#0.5
     params.VarianceThreshold = 0.03
     params.BandThreshold = 0.3
     params.InitialDepth = 2
@@ -290,8 +296,8 @@ def create_params():
     params.CPPN_Bias = -1.0
     params.Qtree_X = 0.0
     params.Qtree_Y = 0.0
-    params.Width = 2.0
-    params.Height = 2.0
+    params.Width = 1.0
+    params.Height = 1.0
     params.Elitism = 0.1
 
     return params
@@ -308,7 +314,7 @@ if __name__ == '__main__':
     local_dir = os.path.dirname(__file__)
     # The directory to store outputs
     out_dir = os.path.join(local_dir, 'out')
-    out_dir = os.path.join(out_dir, 'vd_multineat')
+    out_dir = os.path.join(out_dir, 'rt_multineat')
 
     # Clean results of previous run if any or init the ouput directory
     utils.clear_output(out_dir)
