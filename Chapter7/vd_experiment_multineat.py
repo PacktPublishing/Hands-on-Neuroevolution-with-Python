@@ -341,4 +341,4 @@ if __name__ == '__main__':
                                         args=args,
                                         save_results=True,
                                         silent=False)
-    print("\n------ Trial %d complete, solution found: %s ------\n" % (t, soulution_found))
+        print("\n------ Trial %d complete, solution found: %s ------\n" % (t, soulution_found))
