@@ -109,7 +109,7 @@ def run_experiment(params, rt_environment, trial_out_dir, n_generations=100,
                     2, # hidden units
                     substrate.GetMinCPPNOutputs(),
                     False,
-                    NEAT.ActivationFunction.UNSIGNED_SIGMOID,
+                    NEAT.ActivationFunction.TANH,
                     NEAT.ActivationFunction.SIGNED_GAUSS, # The initial activation type for hidden 
                     1, # hidden layers seed
                     params, 
@@ -193,6 +193,16 @@ def run_experiment(params, rt_environment, trial_out_dir, n_generations=100,
         hidden = len(net.neurons) - net.NumInputs() - net.NumOutputs()
         print("\n\tinputs: %d, outputs: %d, hidden: %d" % (inputs, outputs, hidden))
 
+        # Test against random retina configuration
+        l_index = random.randint(0, 15)
+        r_index = random.randint(0, 15)
+        left = rt_environment.visual_objects[l_index]
+        right = rt_environment.visual_objects[r_index]
+        err, outputs = rt_environment._evaluate(net, left, right, 3)
+        print("Test evaluation error: %f" % err)
+        print("Left flag: %f, pattern: %s" % (outputs[0], left))
+        print("Right flag: %f, pattern: %s" % (outputs[1], right))
+
         # Visualize statistics
         visualize.plot_stats(stats, ylog=False, view=show_results, filename=os.path.join(trial_out_dir, 'avg_fitness.svg'))
 
@@ -254,7 +264,7 @@ def create_params():
     params.RecurrentProb = 0
     params.OverallMutationRate = 0.15
     params.MutateAddLinkProb = 0.1#0.03
-    params.MutateAddNeuronProb = 0.03
+    params.MutateAddNeuronProb = 0.05#0.03
     params.MutateWeightsProb = 0.90
     params.MaxWeight = 8.0
     params.WeightMutationMaxPower = 0.2
@@ -283,20 +293,20 @@ def create_params():
     params.MutateNeuronTraitsProb = 0
     params.MutateLinkTraitsProb = 0
 
-    params.DivisionThreshold = 0.03#0.5
+    params.DivisionThreshold = 0.5
     params.VarianceThreshold = 0.03
     params.BandThreshold = 0.3
     params.InitialDepth = 2
     params.MaxDepth = 3
     params.IterationLevel = 1
-    params.Leo = True
+    params.Leo = False
     params.GeometrySeed = False
     params.LeoSeed = False
     params.LeoThreshold = 0.3
-    params.CPPN_Bias = -1.0
+    params.CPPN_Bias = 0.33#-1.0#
     params.Qtree_X = 0.0
     params.Qtree_Y = 0.0
-    params.Width = 1.0
+    params.Width = 2.0
     params.Height = 1.0
     params.Elitism = 0.1
 
