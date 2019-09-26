@@ -101,8 +101,8 @@ class RetinaEnvironment:
         outputs = net.Output()
 
         # set ground truth
-        left_target = 1.0 if left.side == Side.LEFT else 0.0
-        right_target = 1.0 if right.side == Side.RIGHT else 0.0
+        left_target = 1.0 if left.side == Side.LEFT or left.side == Side.BOTH else 0.0
+        right_target = 1.0 if right.side == Side.RIGHT or right.side == Side.BOTH else 0.0
         targets = [left_target, right_target]
 
         outputs[0] = 1.0 if outputs[0] >= 0.5 else 0.0
