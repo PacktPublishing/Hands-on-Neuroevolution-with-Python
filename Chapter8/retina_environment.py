@@ -59,7 +59,7 @@ class RetinaEnvironment:
         # populate data set
         self.create_data_set()
         
-    def evaluate_net(self, net, depth = 3, max_fitness = 1000.0):
+    def evaluate_net(self, net, depth = 3, max_fitness = 1000.0, debug=False):
         """
         The function to evaluate performance of the provided network
         against the dataset
@@ -72,7 +72,7 @@ class RetinaEnvironment:
         # at correct and incorrect sides of retina
         for left in self.visual_objects:
             for right in self.visual_objects:
-                error, _ = self._evaluate(net, left, right, depth)
+                error, _ = self._evaluate(net, left, right, depth, debug=debug)
                 error_sum += error
                 count += 1.0
 
@@ -81,10 +81,12 @@ class RetinaEnvironment:
         fitness = max_fitness / (1.0 + error_sum)
         avg_error = error_sum / count
 
-        # print(avg_error, error)
+        if debug:
+            print(avg_error, error_sum)
+
         return fitness, avg_error
 
-    def _evaluate(self, net, left, right, depth):
+    def _evaluate(self, net, left, right, depth, debug=False):
         """
         The function to evaluate ANN against specific visual objects at lEFT and RIGHT side
         """
@@ -108,10 +110,13 @@ class RetinaEnvironment:
         outputs[0] = 1.0 if outputs[0] >= 0.5 else 0.0
         outputs[1] = 1.0 if outputs[1] >= 0.5 else 0.0
 
-        # print(targets, outputs[0], outputs[1])
-
         # find error as a distance between outputs and groud truth
         error = (outputs[0] - targets[0]) * (outputs[0] - targets[0]) + (outputs[1] - targets[1]) * (outputs[1] - targets[1])
+        flag = "+" if error == 0 else "-"
+
+        if debug:
+            print("[%.2f, %.2f] -> [%.2f, %.2f] %s" % (targets[0], targets[1], outputs[0], outputs[1], flag))
+
         return error, outputs
 
     def create_data_set(self):
