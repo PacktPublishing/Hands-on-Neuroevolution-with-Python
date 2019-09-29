@@ -47,8 +47,8 @@ def eval_individual(genome, substrate, rt_environment, params):
     net = NEAT.NeuralNetwork()
     genome.BuildESHyperNEATPhenotype(net, substrate, params)
 
-    fitness, dist = rt_environment.evaluate_net(net, max_fitness=MAX_FITNESS)
-    return fitness, dist
+    fitness, dist, total_count, false_detetctions = rt_environment.evaluate_net(net, max_fitness=MAX_FITNESS)
+    return fitness, dist, total_count, false_detetctions
 
 def eval_genomes(genomes, substrate, rt_environment, params):
     """
@@ -68,7 +68,7 @@ def eval_genomes(genomes, substrate, rt_environment, params):
     max_fitness = 0
     errors = []
     for genome in genomes:
-        fitness, error = eval_individual(genome, substrate, rt_environment, params)
+        fitness, error, total_count, false_detetctions = eval_individual(genome, substrate, rt_environment, params)
         genome.SetFitness(fitness)
         errors.append(error)
 
@@ -98,7 +98,7 @@ def run_experiment(params, rt_environment, trial_out_dir, n_generations=100,
         True if experiment finished with successful solver found. 
     """
     # random seed
-    seed = int(time.time())
+    seed = 1569777981#int(time.time())
 
     # Create substrate
     substrate = create_substrate()
@@ -203,6 +203,11 @@ def run_experiment(params, rt_environment, trial_out_dir, n_generations=100,
         print("Left flag: %f, pattern: %s" % (outputs[0], left))
         print("Right flag: %f, pattern: %s" % (outputs[1], right))
 
+        # Test against all visual objects
+        fitness, avg_error, total_count, false_detetctions = rt_environment.evaluate_net(net, debug=True)
+        print("Test evaluation against full data set [%d], fitness: %f, average error: %f, false detections: %f" % 
+                (total_count, fitness, avg_error, false_detetctions))
+
         # Visualize statistics
         visualize.plot_stats(stats, ylog=False, view=show_results, filename=os.path.join(trial_out_dir, 'avg_fitness.svg'))
 
@@ -257,14 +262,14 @@ def create_params():
     params.SpeciesMaxStagnation = 100
     params.OldAgeTreshold = 35
     params.MinSpecies = 5
-    params.MaxSpecies = 10
+    params.MaxSpecies = 15
     params.RouletteWheelSelection = False
 
     params.MutateRemLinkProb = 0.02
     params.RecurrentProb = 0
     params.OverallMutationRate = 0.15
-    params.MutateAddLinkProb = 0.1#0.03
-    params.MutateAddNeuronProb = 0.05#0.03
+    params.MutateAddLinkProb = 0.03
+    params.MutateAddNeuronProb = 0.03
     params.MutateWeightsProb = 0.90
     params.MaxWeight = 8.0
     params.WeightMutationMaxPower = 0.2
@@ -306,7 +311,7 @@ def create_params():
     params.CPPN_Bias = 0.33#-1.0#
     params.Qtree_X = 0.0
     params.Qtree_Y = 0.0
-    params.Width = 2.0
+    params.Width = 1.0
     params.Height = 1.0
     params.Elitism = 0.1
 
@@ -318,6 +323,7 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--generations', default=500, type=int, 
                         help='The number of generations for the evolutionary process.')
     parser.add_argument('-t', '--trials', type=int, default=1, help='The number of trials to run')
+    parser.add_argument('-s', '--silent', type=bool, default=False, help='If True than no intermediary outputs will be presented until solution is found.')
     args = parser.parse_args()
 
     # The current working directory
@@ -344,5 +350,5 @@ if __name__ == '__main__':
                                         n_generations=args.generations,
                                         args=args,
                                         save_results=True,
-                                        silent=False)
+                                        silent=args.silent)
         print("\n------ Trial %d complete, solution found: %s ------\n" % (t, soulution_found))
