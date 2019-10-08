@@ -53,6 +53,7 @@ class AgenRecord:
         self.x = -1
         self.y = -1
         self.fitness = -1
+        self.distance = -1
         self.novelty = -1
         # The flag to indicate whether this agent was able to find maze exit
         self.hit_exit = False

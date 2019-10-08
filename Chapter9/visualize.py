@@ -1,27 +1,3 @@
-#Copyright (c) 2007-2011, cesar.gomes and mirrorballu2
-#Copyright (c) 2015-2017, CodeReclaimers, LLC
-#
-#Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
-#following conditions are met:
-#
-#1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following
-#disclaimer.
-#
-#2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following
-#disclaimer in the documentation and/or other materials provided with the distribution.
-#
-#3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products
-#derived from this software without specific prior written permission.
-#
-#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
-#INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-#DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-#LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-#CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-#SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-from __future__ import print_function
-
 import copy
 import warnings
 import random
@@ -30,71 +6,16 @@ import os
 
 import graphviz
 import matplotlib.pyplot as plt
-import matplotlib.lines as mlines
-import matplotlib.patches as mpatches
 import numpy as np
 
 import geometry
 import agent
 import maze_environment as maze
 
-def plot_stats(statistics, ylog=False, view=False, filename='avg_fitness.svg'):
-    """ Plots the population's average and best fitness. """
-    if plt is None:
-        warnings.warn("This display is not available due to a missing optional dependency (matplotlib)")
-        return
+# The MultiNEAT specific
+import MultiNEAT as NEAT
 
-    generation = range(len(statistics.most_fit_genomes))
-    best_fitness = [c.fitness for c in statistics.most_fit_genomes]
-    avg_fitness = np.array(statistics.get_fitness_mean())
-    stdev_fitness = np.array(statistics.get_fitness_stdev())
-
-    plt.plot(generation, avg_fitness, 'b-', label="average")
-    plt.plot(generation, avg_fitness - stdev_fitness, 'g-.', label="-1 sd")
-    plt.plot(generation, avg_fitness + stdev_fitness, 'g-.', label="+1 sd")
-    plt.plot(generation, best_fitness, 'r-', label="best")
-
-    plt.title("Population's average and best fitness")
-    plt.xlabel("Generations")
-    plt.ylabel("Fitness")
-    plt.grid()
-    plt.legend(loc="best")
-    if ylog:
-        plt.gca().set_yscale('symlog')
-
-    plt.savefig(filename)
-    if view:
-        plt.show()
-
-    plt.close()
-
-def plot_species(statistics, view=False, filename='speciation.svg'):
-    """ Visualizes speciation throughout evolution. """
-    if plt is None:
-        warnings.warn("This display is not available due to a missing optional dependency (matplotlib)")
-        return
-
-    species_sizes = statistics.get_species_sizes()
-    num_generations = len(species_sizes)
-    curves = np.array(species_sizes).T
-
-    fig, ax = plt.subplots()
-    ax.stackplot(range(num_generations), *curves)
-
-    plt.title("Speciation")
-    plt.ylabel("Size per Species")
-    plt.xlabel("Generations")
-
-    plt.savefig(filename)
-
-    if view:
-        plt.show()
-
-    plt.close()
-
-
-def draw_net(config, genome, view=False, filename=None, directory=None, node_names=None, show_disabled=True, prune_unused=False,
-             node_colors=None, fmt='svg'):
+def draw_net(nn, view=False, filename=None, directory=None, node_names=None, node_colors=None, fmt='svg'):
     """ Receives a genome and draws a neural network with arbitrary topology. """
     # Attributes for network nodes.
     if graphviz is None:
@@ -119,62 +40,67 @@ def draw_net(config, genome, view=False, filename=None, directory=None, node_nam
 
     dot = graphviz.Digraph(format=fmt, node_attr=node_attrs)
 
-    inputs = set()
-    for k in config.genome_config.input_keys:
-        inputs.add(k)
-        name = node_names.get(k, str(k))
-        input_attrs = {'style': 'filled', 'shape': 'box', 'fillcolor': node_colors.get(k, 'lightgray')}
-        dot.node(name, _attributes=input_attrs)
+    # neurons
+    for index in range(len(nn.neurons)):
+        n = nn.neurons[index]
+        node_attrs = None, None
+        if n.type == NEAT.NeuronType.INPUT:
+            node_attrs = {'style': 'filled', 'shape': 'box', 'fillcolor': node_colors.get(index, 'lightgray')}
+        elif n.type == NEAT.NeuronType.BIAS:
+            node_attrs = {'style': 'filled', 'shape': 'diamond', 'fillcolor': node_colors.get(index, 'yellow')}
+        elif n.type == NEAT.NeuronType.HIDDEN:
+            node_attrs = {'style': 'filled', 'fillcolor': node_colors.get(index, 'white')}
+        elif n.type == NEAT.NeuronType.OUTPUT:
+            node_attrs = {'style': 'filled', 'fillcolor': node_colors.get(index, 'lightblue')}
 
-    outputs = set()
-    for k in config.genome_config.output_keys:
-        outputs.add(k)
-        name = node_names.get(k, str(k))
-        node_attrs = {'style': 'filled', 'fillcolor': node_colors.get(k, 'lightblue')}
-
+        # add node with name and attributes
+        name = node_names.get(index, str(index))
         dot.node(name, _attributes=node_attrs)
 
-    if prune_unused:
-        connections = set()
-        for cg in genome.connections.values():
-            if cg.enabled or show_disabled:
-                connections.add((cg.in_node_id, cg.out_node_id))
-
-        used_nodes = copy.copy(outputs)
-        pending = copy.copy(outputs)
-        while pending:
-            new_pending = set()
-            for a, b in connections:
-                if b in pending and a not in used_nodes:
-                    new_pending.add(a)
-                    used_nodes.add(a)
-            pending = new_pending
-    else:
-        used_nodes = set(genome.nodes.keys())
-
-    for n in used_nodes:
-        if n in inputs or n in outputs:
-            continue
-
-        attrs = {'style': 'filled',
-                 'fillcolor': node_colors.get(n, 'white')}
-        dot.node(str(n), _attributes=attrs)
-
-    for cg in genome.connections.values():
-        if cg.enabled or show_disabled:
-            #if cg.input not in used_nodes or cg.output not in used_nodes:
-            #    continue
-            input, output = cg.key
-            a = node_names.get(input, str(input))
-            b = node_names.get(output, str(output))
-            style = 'solid' if cg.enabled else 'dotted'
-            color = 'green' if cg.weight > 0 else 'red'
-            width = str(0.1 + abs(cg.weight / 5.0))
-            dot.edge(a, b, _attributes={'style': style, 'color': color, 'penwidth': width})
+    # connections
+    for cg in nn.connections:
+        a = node_names.get(cg.source_neuron_idx, str(cg.source_neuron_idx))
+        b = node_names.get(cg.target_neuron_idx, str(cg.target_neuron_idx))
+        style = 'solid'
+        color = 'green' if cg.weight > 0 else 'red'
+        width = str(0.1 + abs(cg.weight / 5.0))
+        dot.edge(a, b, _attributes={'style': style, 'color': color, 'penwidth': width})
 
     dot.render(filename, directory, view=view)
-
     return dot
+
+def plot_stats(statistics, ylog=False, view=False, filename='avg_distance.svg'):
+    """ Plots the population's best fitness and average distances. """
+
+    generation = range(len(statistics.most_fit_scores))
+    avg_distance = statistics.get_error_mean()
+    stdev_distance = statistics.get_error_stdev()
+
+    fig, ax1 = plt.subplots()
+    # Plot average distance
+    ax1.plot(generation, avg_distance, 'b--', label="average distance")
+    ax1.plot(generation, avg_distance - stdev_distance, 'g-.', label="-1 sd")
+    ax1.plot(generation, avg_distance + stdev_distance, 'g-.', label="+1 sd")
+    ax1.set_xlabel("Generations")
+    ax1.set_ylabel("Avgerage Distance")
+    ax1.grid()
+    ax1.legend(loc="best")
+
+    # Plot best fitness
+    ax2 = ax1.twinx()
+    ax2.plot(generation, statistics.most_fit_scores, 'r-', label="best fitness")
+    ax2.set_ylabel("Fitness")
+
+    plt.title("Population's best fitness and average distance")
+    fig.tight_layout()
+    if ylog:
+        plt.gca().set_yscale('symlog')
+
+    plt.savefig(filename)
+    if view:
+        plt.show()
+
+    plt.close()
 
 def draw_agent_path(maze_env, path_points, genome, filename=None, view=False, show_axes=False, width=400, height=400, fig_height=4):
     """
@@ -193,12 +119,12 @@ def draw_agent_path(maze_env, path_points, genome, filename=None, view=False, sh
     fig, ax = plt.subplots()
     fig.set_dpi(100)
     fig_width = fig_height * (float(width)/float(height )) - 0.2
-    print("Plot figure width: %.1f, height: %.1f" % (fig_width, fig_height))
+    #print("Plot figure width: %.1f, height: %.1f" % (fig_width, fig_height))
     fig.set_size_inches(fig_width, fig_height)
     ax.set_xlim(0, width)
     ax.set_ylim(0, height)
 
-    ax.set_title('Genome ID: %s, Path Length: %d' % (genome.key, len(path_points)))
+    ax.set_title('Genome ID: %s, Path Length: %d' % (genome.GetID(), len(path_points)))
     # draw path
     for p in path_points:
         circle = plt.Circle((p.x, p.y), 2.0, facecolor='b')
@@ -258,7 +184,7 @@ def draw_maze_records(maze_env, records, best_threshold=0.8, filename=None, view
     fig = plt.figure()
     fig.set_dpi(100)
     fig_width = fig_height * (float(width)/float(2.0 * height )) - 0.2
-    print("Plot figure width: %.1f, height: %.1f" % (fig_width, fig_height))
+    #print("Plot figure width: %.1f, height: %.1f" % (fig_width, fig_height))
     fig.set_size_inches(fig_width, fig_height)
     ax1, ax2 = fig.subplots(2, 1, sharex=True)
     ax1.set_xlim(0, width)
@@ -339,11 +265,11 @@ def _draw_maze_(maze_env, ax):
 if __name__ == '__main__':
     # read command line parameters
     parser = argparse.ArgumentParser(description="The maze experiment visualizer.")
-    parser.add_argument('-m', '--maze', default='medium', help='The maze configuration to use.')
+    parser.add_argument('-m', '--maze', default='hard', help='The maze configuration to use.')
     parser.add_argument('-r', '--records', help='The records file.')
     parser.add_argument('-o', '--output', help='The file to store the plot.')
-    parser.add_argument('--width', type=int, default=400, help='The width of the subplot')
-    parser.add_argument('--height', type=int, default=400, help='The height of the subplot')
+    parser.add_argument('--width', type=int, default=200, help='The width of the subplot')
+    parser.add_argument('--height', type=int, default=200, help='The height of the subplot')
     parser.add_argument('--fig_height', type=float, default=7, help='The height of the plot figure')
     parser.add_argument('--show_axes', type=bool, default=False, help='The flag to indicate whether to show plot axes.')
     args = parser.parse_args()

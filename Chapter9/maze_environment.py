@@ -9,6 +9,8 @@ import math
 import agent
 import geometry
 
+from scipy.spatial import distance
+
 from novelty_archive import NoveltyItem
 
 # The maximal allowed speed for the maze solver agent
@@ -58,13 +60,7 @@ def maze_novelty_metric_euclidean(first_item, second_item):
         # can not be compared
         return 0.0
 
-    diff_accum = 0.0
-    size = len(first_item.data)
-    for i in range(size):
-        diff = (first_item.data[i] - second_item.data[i])
-        diff_accum += (diff * diff)
-    
-    return math.sqrt(diff_accum)
+    return distance.euclidean(first_item.data, second_item.data)
 
 class MazeEnvironment:
     """
@@ -88,9 +84,6 @@ class MazeEnvironment:
         self.exit_found = False
         # The initial distance of agent from exit
         self.initial_distance = self.agent_distance_to_exit()
-
-        # The sample rate of agent position points saving during simulation steps.
-        self.location_sample_rate = -1
 
         # Update sensors
         self.update_rangefinder_sensors()
@@ -320,7 +313,7 @@ def read_environment(file_path):
     # create and return the maze environment
     return MazeEnvironment(agent=maze_agent, walls=walls, exit_point=maze_exit)
 
-def maze_simulation_evaluate(env, net, time_steps, mcns=0.0, n_item=None, path_points=None):
+def maze_simulation_evaluate(env, net, time_steps, n_item=None, path_points=None):
     """
     The function to evaluate maze simulation for specific environment
     and controll ANN provided. The results will be saved into provided
@@ -329,7 +322,6 @@ def maze_simulation_evaluate(env, net, time_steps, mcns=0.0, n_item=None, path_p
         env:            The maze configuration environment.
         net:            The maze solver agent's control ANN.
         time_steps:     The number of time steps for maze simulation.
-        mcns:           The minimal criteria fitness value.
         n_item:         The NoveltyItem to store evaluation results.
         path_points:    The holder for path points collected during simulation. If
                         provided None then nothing will be collected.
@@ -348,36 +340,13 @@ def maze_simulation_evaluate(env, net, time_steps, mcns=0.0, n_item=None, path_p
             # collect current position
             path_points.append(geometry.Point(env.agent.location.x, env.agent.location.y))
 
-        # store agent path points at a given sample size rate
-        if (time_steps - i) % env.location_sample_rate == 0 and n_item is not None:
-            n_item.data.append(env.agent.location.x)
-            n_item.data.append(env.agent.location.y)
-
     # store final agent coordinates as genome's novelty characteristics
     if n_item is not None:
         n_item.data.append(env.agent.location.x)
         n_item.data.append(env.agent.location.y) 
 
-    # Calculate the fitness score based on distance from exit
-    fitness = 0.0
-    if exit_found:
-        fitness = 1.0
-    else:
-        # Normalize distance to range (0,1]
-        distance = env.agent_distance_to_exit()
-        fitness = (env.initial_distance - distance) / env.initial_distance
-        if fitness <= 0:
-            fitness = 0.01
-
-    # Use minimal criteria fitness value to signal if genome should be included into population
-    if fitness < mcns:
-        fitness = -1 # mark genome to be excluded
-
-    if n_item is not None:
-        n_item.fitness = fitness
-
-    return fitness
-
+    # return distance to the exit
+    return env.agent_distance_to_exit()
 
 def maze_simulation_step(env, net):
     """
