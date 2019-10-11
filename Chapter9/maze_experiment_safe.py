@@ -27,7 +27,7 @@ import agent
 import novelty_archive as archive
 
 # The number of maze solving simulator steps
-SOLVER_TIME_STEPS = 400#300#
+SOLVER_TIME_STEPS = 400
 
 class ANN:
     """
@@ -149,13 +149,16 @@ def evaluate_solutions(robot, obj_func_coeffs, generation):
 
     # evaluate novelty scores of robot genomes and calculate fitness
     max_fitness = 0
+    best_coeffs = None
+    best_distance = 1000
+    best_novelty = 0
     for i, n_item in enumerate(n_items_list):
         novelty = robot.archive.evaluate_novelty_score(item=n_item, n_items_list=n_items_list)
         # The sanity check
         assert robot_genomes[i].GetID() == n_item.genomeId
 
         # calculate fitness
-        fitness = evaluate_solution_fitness(distances[i], novelty, obj_func_coeffs)
+        fitness, coeffs = evaluate_solution_fitness(distances[i], novelty, obj_func_coeffs)
         robot_genomes[i].SetFitness(fitness)
 
         if not solution_found:
@@ -163,11 +166,17 @@ def evaluate_solutions(robot, obj_func_coeffs, generation):
             if max_fitness < fitness:
                 max_fitness = fitness
                 best_robot_genome = robot_genomes[i]
+                best_coeffs = coeffs
+                best_distance = distances[i]
+                best_novelty = novelty
         elif best_robot_genome.GetID() == n_item.genomeId:
             # store fitness of winner solution
             max_fitness = fitness
+            best_coeffs = coeffs
+            best_distance = distances[i]
+            best_novelty = novelty
 
-    return best_robot_genome, solution_found, max_fitness, distances
+    return best_robot_genome, solution_found, max_fitness, distances, best_coeffs, best_distance, best_novelty
         
 
 def evaluate_solution_fitness(distance, novelty, obj_func_coeffs):
@@ -180,14 +189,21 @@ def evaluate_solution_fitness(distance, novelty, obj_func_coeffs):
         obj_func_coeffs:    The objective function coefficients from evaluated population of evolved objective
                             functions.
     Returns:
-        The maximum fitness score eveluated using all provided objective function coefficients.
+        The maximum fitness score eveluated using all provided objective function coefficients and objective function
+        coefficients used to get max fitness score.
     """
     max_fitness = 0
+    best_coeffs = [-1, -1]
     for coeff in obj_func_coeffs:
         fitness = coeff[0] / (distance + 1) + coeff[1] * novelty
-        max_fitness = max(max_fitness, fitness)
+        if fitness > max_fitness:
+            max_fitness = fitness
+            best_coeffs[0] = coeff[0]
+            best_coeffs[1] = coeff[1]
 
-    return max_fitness
+    # print("Solution fitness: %f -> d: %f, ns: %f, a: %f, b: %f" % (max_fitness, distance, novelty, best_coeffs[0], best_coeffs[1]))
+
+    return max_fitness, best_coeffs
 
 def evaluate_individ_obj_function(genome, generation):
     """
@@ -276,6 +292,8 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
     best_robot_genome_ser = None
     best_robot_id = -1
     solution_found = False
+    best_obj_func_coeffs = None
+    best_solution_novelty = 0
 
     stats = Statistics()
     for generation in range(n_generations):
@@ -286,7 +304,7 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
         obj_func_coeffs, max_obj_func_fitness = evaluate_obj_functions(obj_func, generation)
 
         # evaluate robots population
-        robot_genome, solution_found, robot_fitness, distances = evaluate_solutions(
+        robot_genome, solution_found, robot_fitness, distances, obj_coeffs, best_distance, best_novelty = evaluate_solutions(
             robot=robot, obj_func_coeffs=obj_func_coeffs, generation=generation)
 
         stats.post_evaluate(max_fitness=robot_fitness, errors=distances)
@@ -294,6 +312,8 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
         if solution_found or robot.population.GetBestFitnessEver() < robot_fitness:
             best_robot_genome_ser = pickle.dumps(robot_genome)
             best_robot_id = robot_genome.GetID()
+            best_obj_func_coeffs = obj_coeffs
+            best_solution_novelty = best_novelty
         
         if solution_found:
             print('Solution found at generation: %d, best fitness: %f, species count: %d' % (generation, robot_fitness, len(pop.Species)))
@@ -308,10 +328,11 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
         print("Generation fitness -> solution: %f, objective function: %f" % (robot_fitness, max_obj_func_fitness))
         print("Species count      -> solution: %d, objective function: %d" % (len(robot.population.Species), len(obj_func.population.Species)))
         print("Best fitness ever  -> solution: %f, objective function: %f" % (robot.population.GetBestFitnessEver(), obj_func.population.GetBestFitnessEver()))
-        print("Archive size       -> solution: %d; objective function: %d" % (robot.archive.size(), obj_func.archive.size()))
-        print("Best solution genome ID: %d" % best_robot_id)
-        print("------------------------")
-        print("Generation elapsed time: %.3f sec\n" % (gen_elapsed_time))
+        print("Archive size       -> solution: %d, objective function: %d" % (robot.archive.size(), obj_func.archive.size()))
+        print("Objective func coefficients:    %s" % obj_coeffs)
+        print("Best solution genome ID:        %d, distance to exit: %f, novelty: %f" % (best_robot_id, best_distance, best_novelty))
+        print("------------------------------")
+        print("Generation elapsed time:        %.3f sec\n" % (gen_elapsed_time))
         
     elapsed_time = time.time() - start_time
     # Load serialized best robot genome
@@ -327,10 +348,11 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
     robot.record_store.dump(rs_file)
 
     print("==================================")
-    print("Record store file: %s" % rs_file)
-    print("Random seed:", seed)
-    print("Trial elapsed time: %.3f sec" % (elapsed_time))
+    print("Record store file:     %s" % rs_file)
+    print("Random seed:           %d" % seed)
     print("Best solution fitness: %f, genome ID: %d" % (robot.population.GetBestFitnessEver(), best_robot_genome.GetID()))
+    print("Best objective func coefficients: %s" % best_obj_func_coeffs)
+    print("------------------------------")
 
     # Visualize the experiment results
     show_results = not silent
@@ -363,7 +385,7 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
                                     net=control_net, 
                                     time_steps=SOLVER_TIME_STEPS,
                                     path_points=path_points)
-        print("The distance to exit: %f, of best agent ID: %d" % (distance, best_robot_genome.GetID()))
+        print("Best solution distance to maze exit: %.2f, novelty: %.2f" % (distance, best_solution_novelty))
         visualize.draw_agent_path(robot.orig_maze_environment, path_points, best_robot_genome,
                                     view=show_results, 
                                     width=args.width,
@@ -373,6 +395,10 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
         # Visualize statistics
         visualize.plot_stats(stats, ylog=False, view=show_results, filename=os.path.join(trial_out_dir, 'avg_fitness.svg'))
 
+    print("------------------------")
+    print("Trial elapsed time:    %.3f sec" % (elapsed_time))
+    print("==================================")
+
     return solution_found
 
 def create_objective_fun(seed):
@@ -381,8 +407,10 @@ def create_objective_fun(seed):
     """
     params = create_objective_fun_params()
     # Genome has one input (0.5) and two outputs (a and b)
-    genome = NEAT.Genome(0, 1, 0, 2, False, NEAT.ActivationFunction.TANH, 
-                        NEAT.ActivationFunction.TANH, 0, params, 0)
+    genome = NEAT.Genome(0, 1, 1, 2, False, 
+        NEAT.ActivationFunction.TANH, # hidden layer activation
+        NEAT.ActivationFunction.UNSIGNED_SIGMOID, # output layer activation
+        1, params, 0)
     pop = NEAT.Population(genome, params, True, 1.0, seed)
     pop.RNG.Seed(seed)
 
@@ -421,7 +449,6 @@ def create_objective_fun_params():
     params.WeightReplacementMaxPower = 5.0
     params.MutateWeightsSevereProb = 0.5
     params.WeightMutationRate = 0.75
-    params.MaxWeight = 8.0
 
     params.MutateAddNeuronProb = 0.03
     params.MutateAddLinkProb = 0.05
@@ -458,7 +485,7 @@ def create_robot_params():
     The function to create NEAT hyper-parameters for population of robots
     """
     params = NEAT.Parameters()
-    params.PopulationSize = 100
+    params.PopulationSize = 250
     params.DynamicCompatibility = True
     params.AllowClones = False
     params.AllowLoops = True
@@ -484,7 +511,8 @@ def create_robot_params():
     params.WeightReplacementMaxPower = 5.0
     params.MutateWeightsSevereProb = 0.5
     params.WeightMutationRate = 0.75
-    params.MaxWeight = 8.0
+    params.MaxWeight = 30.0
+    params.MinWeight = -30.0
 
     params.MutateAddNeuronProb = 0.03
     params.MutateAddLinkProb = 0.05
@@ -537,11 +565,15 @@ if __name__ == '__main__':
         # Create novelty archive
         trial_out_dir = os.path.join(out_dir, str(t))
         os.makedirs(trial_out_dir, exist_ok=True)
-        soulution_found = run_experiment(
+        solution_found = run_experiment(
                                         maze_env=maze_env,
                                         trial_out_dir=trial_out_dir,
                                         n_generations=args.generations,
                                         args=args,
                                         save_results=True,
                                         silent=True)
-    print("\n------ Trial %d complete, solution found: %s ------\n" % (t, soulution_found))
+
+        print("\n------ Trial %d complete, solution found: %s ------\n" % (t, solution_found))
+
+        if solution_found:
+            break

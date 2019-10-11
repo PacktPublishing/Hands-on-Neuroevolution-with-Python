@@ -81,6 +81,9 @@ class NoveltyArchive:
         """
         The function to evaluate novelty score of given novelty item among archive items
         and population items.
+        Arguments:
+            item:           The novelty item to evaluate
+            n_items_list:   The list with novelty items for current population
         """
         # collect distances among archived novelty items
         distances = []
