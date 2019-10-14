@@ -334,11 +334,13 @@ def maze_simulation_evaluate(env, net, time_steps, n_item=None, path_points=None
         if maze_simulation_step(env, net):
             print("Maze solved in %d steps" % (i + 1))
             exit_found = True
-            break
 
         if path_points is not None:
             # collect current position
             path_points.append(geometry.Point(env.agent.location.x, env.agent.location.y))
+
+        if exit_found:
+            break
 
     # store final agent coordinates as genome's novelty characteristics
     if n_item is not None:
