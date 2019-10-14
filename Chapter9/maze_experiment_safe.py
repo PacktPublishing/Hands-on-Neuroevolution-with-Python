@@ -192,10 +192,15 @@ def evaluate_solution_fitness(distance, novelty, obj_func_coeffs):
         The maximum fitness score eveluated using all provided objective function coefficients and objective function
         coefficients used to get max fitness score.
     """
+    normalized_novelty = novelty
+    if novelty >= 1.00:
+        normalized_novelty = math.log(novelty)
+    norm_distance = math.log(distance)
+
     max_fitness = 0
     best_coeffs = [-1, -1]
     for coeff in obj_func_coeffs:
-        fitness = coeff[0] / (distance + 1) + coeff[1] * novelty
+        fitness = coeff[0] / norm_distance + coeff[1] * normalized_novelty
         if fitness > max_fitness:
             max_fitness = fitness
             best_coeffs[0] = coeff[0]
@@ -281,7 +286,8 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
         True if experiment finished with successful solver found. 
     """
     # set random seed
-    seed = int(time.time())
+    seed = 1571021768#int(time.time())
+    print("Random seed:           %d" % seed)
 
     # Create Population of Robots and objective functions
     robot = create_robot(maze_env, seed=seed)
@@ -294,6 +300,7 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
     solution_found = False
     best_obj_func_coeffs = None
     best_solution_novelty = 0
+    best_solution_distance = 0
 
     stats = Statistics()
     for generation in range(n_generations):
@@ -314,9 +321,11 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
             best_robot_id = robot_genome.GetID()
             best_obj_func_coeffs = obj_coeffs
             best_solution_novelty = best_novelty
+            best_solution_distance = best_distance
         
         if solution_found:
-            print('Solution found at generation: %d, best fitness: %f, species count: %d' % (generation, robot_fitness, len(pop.Species)))
+            print('\nSolution found at generation: %d, best fitness: %f, species count: %d\n' % 
+                    (generation, robot_fitness, len(robot.population.Species)))
             break
 
         # advance to the next generation
@@ -326,11 +335,13 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
         # print statistics
         gen_elapsed_time = time.time() - gen_time
         print("Generation fitness -> solution: %f, objective function: %f" % (robot_fitness, max_obj_func_fitness))
-        print("Species count      -> solution: %d, objective function: %d" % (len(robot.population.Species), len(obj_func.population.Species)))
+        print("Gen. species count -> solution: %d, objective function: %d" % (len(robot.population.Species), len(obj_func.population.Species)))
+        print("Gen. archive size  -> solution: %d, objective function: %d" % (robot.archive.size(), obj_func.archive.size()))
+        print("Objective function coeffts:     %s" % obj_coeffs)
+        print("Gen. best solution genome ID:   %d, distance to exit: %f, novelty: %f" % (robot_genome.GetID(), best_distance, best_novelty))
+        print("->")
         print("Best fitness ever  -> solution: %f, objective function: %f" % (robot.population.GetBestFitnessEver(), obj_func.population.GetBestFitnessEver()))
-        print("Archive size       -> solution: %d, objective function: %d" % (robot.archive.size(), obj_func.archive.size()))
-        print("Objective func coefficients:    %s" % obj_coeffs)
-        print("Best solution genome ID:        %d, distance to exit: %f, novelty: %f" % (best_robot_id, best_distance, best_novelty))
+        print("Best ever solution genome ID:   %d, distance to exit: %f, novelty: %f" % (best_robot_id, best_solution_distance, best_solution_novelty))
         print("------------------------------")
         print("Generation elapsed time:        %.3f sec\n" % (gen_elapsed_time))
         
@@ -350,6 +361,7 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
     print("==================================")
     print("Record store file:     %s" % rs_file)
     print("Random seed:           %d" % seed)
+    print("............")
     print("Best solution fitness: %f, genome ID: %d" % (robot.population.GetBestFitnessEver(), best_robot_genome.GetID()))
     print("Best objective func coefficients: %s" % best_obj_func_coeffs)
     print("------------------------------")
@@ -391,6 +403,9 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
                                     width=args.width,
                                     height=args.height,
                                     filename=os.path.join(trial_out_dir, 'best_solver_path.svg'))
+
+        # Draw the best agent phenotype ANN
+        visualize.draw_net(multi_net, view=show_results, filename="best_solver_net", directory=trial_out_dir)
 
         # Visualize statistics
         visualize.plot_stats(stats, ylog=False, view=show_results, filename=os.path.join(trial_out_dir, 'avg_fitness.svg'))
@@ -518,7 +533,7 @@ def create_robot_params():
     params.MutateAddLinkProb = 0.05
     params.MutateRemLinkProb = 0.1
 
-    params.Elitism = 0.2
+    params.Elitism = 0.1
 
     params.CrossoverRate = 0.8
     params.MultipointCrossoverRate = 0.6
@@ -532,13 +547,13 @@ def create_robot_params():
 if __name__ == '__main__':
     # read command line parameters
     parser = argparse.ArgumentParser(description="The maze experiment runner (SAFE).")
-    parser.add_argument('-m', '--maze', default='hard', 
+    parser.add_argument('-m', '--maze', default='medium', 
                         help='The maze configuration to use.')
     parser.add_argument('-g', '--generations', default=500, type=int, 
                         help='The number of generations for the evolutionary process.')
     parser.add_argument('-t', '--trials', type=int, default=1, help='The number of trials to run')
-    parser.add_argument('--width', type=int, default=200, help='The width of the records subplot')
-    parser.add_argument('--height', type=int, default=200, help='The height of the records subplot')
+    parser.add_argument('--width', type=int, default=300, help='The width of the records subplot')
+    parser.add_argument('--height', type=int, default=150, help='The height of the records subplot')
     args = parser.parse_args()
 
     if not (args.maze == 'medium' or args.maze == 'hard'):
@@ -549,7 +564,7 @@ if __name__ == '__main__':
     local_dir = os.path.dirname(__file__)
     # The directory to store outputs
     out_dir = os.path.join(local_dir, 'out')
-    out_dir = os.path.join(out_dir, 'maze_safe')
+    out_dir = os.path.join(out_dir, 'maze_%s_safe' % args.maze)
 
     # Clean results of previous run if any or init the ouput directory
     utils.clear_output(out_dir)

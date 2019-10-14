@@ -345,7 +345,6 @@ def maze_simulation_evaluate(env, net, time_steps, n_item=None, path_points=None
         n_item.data.append(env.agent.location.x)
         n_item.data.append(env.agent.location.y) 
 
-    # return distance to the exit
     return env.agent_distance_to_exit()
 
 def maze_simulation_step(env, net):
