@@ -93,7 +93,7 @@ class Offspring(object):
         self.validation_rewards = validation_rewards
         self.validation_ep_len = validation_ep_len
 
-        print("Offspring [seeds: %d, rewards: %d, episode lengths: %d]" % (len(seeds), len(rewards), len(ep_len)))
+        # print("Offspring [seeds: %d, rewards: %d, episode lengths: %d]" % (len(seeds), len(rewards), len(ep_len)))
 
     @property
     def fitness(self):
@@ -116,9 +116,6 @@ def master_extract_parent_ga(point, iteration):
     path = "snapshots/snapshot_gen_{:04}/".format(int(iteration))
     if not os.path.exists(path):
         os.makedirs(path)
-
-    h5_filename = path+"snapshot_parent_{:04d}.h5".format(iteration)
-    policy.save(h5_filename)
 
     filename = "snapshot_parent_{:04}.dat".format(int(iteration))
 
@@ -264,6 +261,14 @@ def main(config, out_dir):
             state.elite = validation_population[population_elite_idx]
             elite_theta = worker.model.compute_weights_from_seeds(noise, state.elite.seeds, cache=cached_parents)
             _, population_elite_evals, population_elite_evals_timesteps = worker.monitor_eval_repeated([(elite_theta, state.elite.seeds)], max_frames=None, num_episodes=config['num_test_episodes'])[0]
+
+            # Save elite of the current generation
+            parent_bc_point = []
+            parent_bc_point.append(np.mean(population_elite_evals))
+            parent_bc_point.append(np.sum(population_elite_evals_timesteps))
+            parent_bc_point.append(state.elite.policy_seed)
+            parent_bc_point.append(len(state.elite.seeds))
+            master_extract_parent_ga(parent_bc_point, state.it)
 
             # Log Results
             validation_timesteps = sum(population_validation_len)

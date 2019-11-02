@@ -71,14 +71,11 @@ class RLEvalutionWorker(AsyncWorker):
                 self.incr_counter = tf.assign_add(self.steps_counter, tf.cast(tf.reduce_prod(tf.shape(self.placeholder_indices)), dtype=tf.float32))
 
     def _loop(self):
-        info = [None] * self.batch_size
         running = np.zeros((self.batch_size,), dtype=np.bool)
         cumrews = np.zeros((self.batch_size, ), dtype=np.float32)
         cumlen = np.zeros((self.batch_size, ), dtype=np.int32)
 
         tlogger.info('RLEvalutionWorker._loop')
-
-        tf_indices = tf.placeholder(dtype=tf.int32, shape=(None,), name='input_indices')
 
         while True:
             # nothing loaded, block
