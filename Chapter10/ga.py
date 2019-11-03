@@ -93,6 +93,8 @@ class Offspring(object):
         self.validation_rewards = validation_rewards
         self.validation_ep_len = validation_ep_len
 
+        self.bc_vec = []
+
         # print("Offspring [seeds: %d, rewards: %d, episode lengths: %d]" % (len(seeds), len(rewards), len(ep_len)))
 
     @property
@@ -106,6 +108,10 @@ class Offspring(object):
     @property
     def policy_seed(self):
         return self.seeds[0]
+
+    @property
+    def bc_vector(self):
+        return self.bc_vec
 
 class OffspringCached(object):
     def __init__(self, seeds):
@@ -121,11 +127,11 @@ def master_extract_parent_ga(point, iteration):
 
     with open(os.path.join(path, filename), 'w+') as file:
         writer = csv.writer(file, delimiter=' ')
-        fitness = point[0]
-        length = point[1]
-        policy_seed = point[2]
-        seed_length = point[3]
-        row = np.hstack((fitness, length, policy_seed, seed_length))
+        bc_vector = point[0]
+        fitness = point[1]
+        length = point[2]
+        policy_seed = point[3]
+        row = np.hstack((bc_vector, fitness, length, policy_seed))
         writer.writerow(row)
 
 def master_extract_cloud_ga(curr_task_results, iteration):
@@ -138,11 +144,11 @@ def master_extract_cloud_ga(curr_task_results, iteration):
     with open(os.path.join(path, filename), 'w+') as file:
         writer = csv.writer(file, delimiter=' ')
         for result in curr_task_results:
+            bc_vector = result.bc_vector
             fitness = result.fitness
             length = result.training_steps
             policy_seed = result.policy_seed
-            seed_length = len(result.seeds)
-            row = np.hstack((fitness, length, policy_seed, seed_length))
+            row = np.hstack((bc_vector, fitness, length, policy_seed))
             writer.writerow(row)
                 
 
@@ -233,9 +239,6 @@ def main(config, out_dir):
             rewards = np.array([a.fitness for a in results])
             population_timesteps = sum([a.training_steps for a in results])
 
-            # Save offsprings
-            master_extract_cloud_ga(results, state.it)
-
             state.population = sorted(results, key=lambda x:x.fitness, reverse=True)
             tlogger.record_tabular('PopulationEpRewMax', np.max(rewards))
             tlogger.record_tabular('PopulationEpRewMean', np.mean(rewards))
@@ -262,14 +265,6 @@ def main(config, out_dir):
             elite_theta = worker.model.compute_weights_from_seeds(noise, state.elite.seeds, cache=cached_parents)
             _, population_elite_evals, population_elite_evals_timesteps = worker.monitor_eval_repeated([(elite_theta, state.elite.seeds)], max_frames=None, num_episodes=config['num_test_episodes'])[0]
 
-            # Save elite of the current generation
-            parent_bc_point = []
-            parent_bc_point.append(np.mean(population_elite_evals))
-            parent_bc_point.append(np.sum(population_elite_evals_timesteps))
-            parent_bc_point.append(state.elite.policy_seed)
-            parent_bc_point.append(len(state.elite.seeds))
-            master_extract_parent_ga(parent_bc_point, state.it)
-
             # Log Results
             validation_timesteps = sum(population_validation_len)
             timesteps_this_iter = population_timesteps + validation_timesteps
@@ -279,7 +274,7 @@ def main(config, out_dir):
             # Log
             tlogger.record_tabular('TruncatedPopulationRewMean', np.mean([a.fitness for a in validation_population]))
             tlogger.record_tabular('TruncatedPopulationValidationRewMean', np.mean(population_validation))
-            tlogger.record_tabular('TruncatedPopulationEliteValidationRewMean', np.max(population_validation))
+            tlogger.record_tabular('TruncatedPopulationEliteValidationRew', np.max(population_validation))
             tlogger.record_tabular("TruncatedPopulationEliteIndex", population_elite_idx)
             tlogger.record_tabular('TruncatedPopulationEliteSeeds', state.elite.seeds)
             tlogger.record_tabular('TruncatedPopulationEliteTestRewMean', np.mean(population_elite_evals))
