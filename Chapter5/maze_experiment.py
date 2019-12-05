@@ -70,7 +70,7 @@ def eval_fitness(genome_id, genome, config, time_steps=400):
                                         time_steps=time_steps)
 
     # Store simulation results into the agent record
-    record = agent.AgenRecord(
+    record = agent.AgentRecord(
         generation=trialSim.population.generation,
         agent_id=genome_id)
     record.fitness = fitness

@@ -36,7 +36,7 @@ class Agent:
         # the list to hold pie-slice radar activations
         self.radar = [None] * len(self.radar_angles)
 
-class AgenRecord:
+class AgentRecord:
     """
     The class to hold results of maze navigation simulation for specific
     solver agent. It provides all statistics about the agent at the end
