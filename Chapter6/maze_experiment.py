@@ -85,7 +85,7 @@ def eval_individual(genome_id, genome, genomes, n_items_map, config):
         return False
 
     # Store simulation results into the agent record
-    record = agent.AgenRecord(
+    record = agent.AgentRecord(
         generation=trial_sim.population.generation,
         agent_id=genome_id)
     record.fitness = goal_fitness

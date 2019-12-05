@@ -107,7 +107,7 @@ def eval_individual(genome_id, genome, genomes, n_items_map, generation):
                                         n_item=n_item)
 
     # Store simulation results into the agent record
-    record = agent.AgenRecord(generation=generation, agent_id=genome_id)
+    record = agent.AgentRecord(generation=generation, agent_id=genome_id)
     record.fitness = goal_fitness
     record.x = maze_env.agent.location.x
     record.y = maze_env.agent.location.y
