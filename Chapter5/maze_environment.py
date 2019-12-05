@@ -282,7 +282,7 @@ def maze_simulation_evaluate(env, net, time_steps):
     fitness = env.agent_distance_to_exit()
     # Normalize fitness score to range (0,1]
     fitness = (env.initial_distance - fitness) / env.initial_distance
-    if fitness <= 0:
+    if fitness <= 0.01:
         fitness = 0.01
 
     return fitness
