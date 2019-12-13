@@ -219,7 +219,7 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, args=N
     print("Trial elapsed time: %.3f sec" % (elapsed_time))
 
     # Visualize the experiment results
-    show_results = not silent
+    show_results = solution_found or not silent
     if save_results or show_results:
         node_names =   {-1:'RF_R', -2:'RF_FR', -3:'RF_F', -4:'RF_FL', -5:'RF_L', -6: 'RF_B', 
                         -7:'RAD_F', -8:'RAD_L', -9:'RAD_B', -10:'RAD_R', 
