@@ -47,8 +47,8 @@ def eval_individual(genome, substrate, rt_environment, params):
     net = NEAT.NeuralNetwork()
     genome.BuildESHyperNEATPhenotype(net, substrate, params)
 
-    fitness, dist, total_count, false_detetctions = rt_environment.evaluate_net(net, max_fitness=MAX_FITNESS)
-    return fitness, dist, total_count, false_detetctions
+    fitness, dist, total_count, false_detections = rt_environment.evaluate_net(net, max_fitness=MAX_FITNESS)
+    return fitness, dist, total_count, false_detections
 
 def eval_genomes(genomes, substrate, rt_environment, params):
     """
@@ -68,7 +68,7 @@ def eval_genomes(genomes, substrate, rt_environment, params):
     max_fitness = 0
     errors = []
     for genome in genomes:
-        fitness, error, total_count, false_detetctions = eval_individual(genome, substrate, rt_environment, params)
+        fitness, error, total_count, false_detections = eval_individual(genome, substrate, rt_environment, params)
         genome.SetFitness(fitness)
         errors.append(error)
 
@@ -204,9 +204,9 @@ def run_experiment(params, rt_environment, trial_out_dir, n_generations=100,
         print("Right flag: %f, pattern: %s" % (outputs[1], right))
 
         # Test against all visual objects
-        fitness, avg_error, total_count, false_detetctions = rt_environment.evaluate_net(net, debug=True)
+        fitness, avg_error, total_count, false_detections = rt_environment.evaluate_net(net, debug=True)
         print("Test evaluation against full data set [%d], fitness: %f, average error: %f, false detections: %f" % 
-                (total_count, fitness, avg_error, false_detetctions))
+                (total_count, fitness, avg_error, false_detections))
 
         # Visualize statistics
         visualize.plot_stats(stats, ylog=False, view=show_results, filename=os.path.join(trial_out_dir, 'avg_fitness.svg'))
