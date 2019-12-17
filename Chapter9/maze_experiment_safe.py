@@ -286,7 +286,7 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
         True if experiment finished with successful solver found. 
     """
     # set random seed
-    seed = 1571021768#int(time.time())
+    seed = int(time.time())#1571021768#
     print("Random seed:           %d" % seed)
 
     # Create Population of Robots and objective functions
