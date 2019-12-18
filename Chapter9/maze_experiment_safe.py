@@ -311,7 +311,8 @@ def run_experiment(maze_env, trial_out_dir, args=None, n_generations=100,
         obj_func_coeffs, max_obj_func_fitness = evaluate_obj_functions(obj_func, generation)
 
         # evaluate robots population
-        robot_genome, solution_found, robot_fitness, distances, obj_coeffs, best_distance, best_novelty = evaluate_solutions(
+        robot_genome, solution_found, robot_fitness, distances, \
+        obj_coeffs, best_distance, best_novelty = evaluate_solutions(
             robot=robot, obj_func_coeffs=obj_func_coeffs, generation=generation)
 
         stats.post_evaluate(max_fitness=robot_fitness, errors=distances)
