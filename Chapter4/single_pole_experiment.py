@@ -80,15 +80,15 @@ def run_experiment(config_file, n_generations=100):
     # Display the best genome among generations.
     print('\nBest genome:\n{!s}'.format(best_genome))
 
-    # Check if the best genome is a winning Sinle-Pole balancing controller 
+    # Check if the best genome is a winning Single-Pole balancing controller 
     net = neat.nn.FeedForwardNetwork.create(best_genome, config)
     print("\n\nEvaluating the best genome in random runs")
     success_runs = evaluate_best_net(net, config, additional_num_runs)
     print("Runs successful/expected: %d/%d" % (success_runs, additional_num_runs))
     if success_runs == additional_num_runs:
-        print("SUCCESS: The stable Sinle-Pole balancing controller found!!!")
+        print("SUCCESS: The stable Single-Pole balancing controller found!!!")
     else:
-        print("FAILURE: Failed to find the stable Sinle-Pole balancing controller!!!")
+        print("FAILURE: Failed to find the stable Single-Pole balancing controller!!!")
 
     # Visualize the experiment results
     node_names = {-1:'x', -2:'dot_x', -3:'θ', -4:'dot_θ', 0:'action'}

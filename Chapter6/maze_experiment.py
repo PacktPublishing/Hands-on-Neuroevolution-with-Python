@@ -81,7 +81,8 @@ def eval_individual(genome_id, genome, genomes, n_items_map, config):
 
     if goal_fitness == -1:
         # The individual doesn't meet the minimal fitness criterion
-        print("Individ with ID: %d marked for extiction, MCNS: %f" % (genome_id, MCNS))
+        print("Individ with ID: %d marked for extiction, MCNS: %f" 
+                % (genome_id, MCNS))
         return False
 
     # Store simulation results into the agent record
@@ -92,18 +93,23 @@ def eval_individual(genome_id, genome, genomes, n_items_map, config):
     record.x = maze_env.agent.location.x
     record.y = maze_env.agent.location.y
     record.hit_exit = maze_env.exit_found
-    record.species_id = trial_sim.population.species.get_species_id(genome_id)
-    record.species_age = record.generation - trial_sim.population.species.get_species(genome_id).created
+    record.species_id = trial_sim.population.species \
+        .get_species_id(genome_id)
+    record.species_age = record.generation - \
+        trial_sim.population.species.get_species(genome_id).created
     # add record to the store
     trial_sim.record_store.add_record(record)
 
     # Evaluate the novelty of a genome and add the novelty item to the archive of Novelty items if appropriate
     if not maze_env.exit_found:
         # evaluate genome novelty and add it to the archive if appropriate
-        record.novelty = trial_sim.archive.evaluate_individual_novelty(genome=genome, genomes=genomes, n_items_map=n_items_map)
+        record.novelty = trial_sim.archive \
+            .evaluate_individual_novelty(genome=genome, genomes=genomes, 
+                                        n_items_map=n_items_map)
 
     # update fittest organisms list
-    trial_sim.archive.update_fittest_with_genome(genome=genome, n_items_map=n_items_map)
+    trial_sim.archive.update_fittest_with_genome(genome=genome, 
+                                        n_items_map=n_items_map)
 
     return maze_env.exit_found
 
@@ -204,7 +210,8 @@ def run_experiment(config_file, maze_env, novelty_archive, trial_out_dir, args=N
     # Display the best genome among generations.
     print('\nBest genome:\n%s' % (best_genome))
 
-    solution_found = (best_genome.fitness >= config.fitness_threshold)
+    solution_found = \
+        (best_genome.fitness >= config.fitness_threshold)
     if solution_found:
         print("SUCCESS: The stable maze solver controller was found!!!")
     else:
@@ -303,7 +310,7 @@ if __name__ == '__main__':
                                                  metric=maze.maze_novelty_metric)
         trial_out_dir = os.path.join(out_dir, str(t))
         os.makedirs(trial_out_dir, exist_ok=True)
-        soulution_found = run_experiment( config_file=config_path, 
+        solution_found = run_experiment( config_file=config_path, 
                                         maze_env=maze_env, 
                                         novelty_archive=novelty_archive,
                                         trial_out_dir=trial_out_dir,
@@ -311,4 +318,4 @@ if __name__ == '__main__':
                                         args=args,
                                         save_results=True,
                                         silent=True)
-        print("\n------ Trial %d complete, solution found: %s ------\n" % (t, soulution_found))
+        print("\n------ Trial %d complete, solution found: %s ------\n" % (t, solution_found))

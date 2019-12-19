@@ -378,7 +378,7 @@ if __name__ == '__main__':
                                                  metric=maze.maze_novelty_metric)
         trial_out_dir = os.path.join(out_dir, str(t))
         os.makedirs(trial_out_dir, exist_ok=True)
-        soulution_found = run_experiment( params=create_params(), 
+        solution_found = run_experiment( params=create_params(), 
                                         maze_env=maze_env, 
                                         novelty_archive=novelty_archive,
                                         trial_out_dir=trial_out_dir,
@@ -386,4 +386,4 @@ if __name__ == '__main__':
                                         args=args,
                                         save_results=True,
                                         silent=True)
-    print("\n------ Trial %d complete, solution found: %s ------\n" % (t, soulution_found))
+    print("\n------ Trial %d complete, solution found: %s ------\n" % (t, solution_found))
