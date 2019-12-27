@@ -1,6 +1,6 @@
 # Hands-on-Neuroevolution-with-Python
 
-<a href="https://www.packtpub.com/data/hands-on-neuroevolution-with-python?utm_source=github&utm_medium=repository&utm_campaign=9781838822002"><img src="https://www.packtpub.com/media/catalog/product/cache/e4d64343b1bc593f1c5348fe05efa4a6/9/7/9781838642730-original.jpeg" alt="Learning DevOps " height="256px" align="right"></a>
+<a href="https://www.packtpub.com/data/hands-on-neuroevolution-with-python?utm_source=github&utm_medium=repository&utm_campaign=9781838822002"><img src="https://www.packtpub.com/data/hands-on-neuroevolution-with-python" alt="Learning DevOps " height="256px" align="right"></a>
 
 This is the code repository for [Hands-On Neuroevolution with Python ](https://www.packtpub.com/data/hands-on-neuroevolution-with-python?utm_source=github&utm_medium=repository&utm_campaign=9781838822002), published by Packt.
 
