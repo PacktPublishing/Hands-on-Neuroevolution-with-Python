@@ -36,6 +36,14 @@ for xi in xor_inputs:
 **Following is what you need for this book:**
 A practical knowledge of the Python programming language is essential to work with the examples presented in this book. For better source code understanding, it is preferable to use an IDE that supports Python syntax highlighting and code reference location. If you don't have one installed, you can use Microsoft Visual Studio Code. It is free and cross-platform, and you can download it here: https://code.visualstudio.com.
 
+With the following software and hardware list you can run all code files present in the book (Chapter 1-15).
+### Software and Hardware List
+| Chapter | Software required | OS required |
+| -------- | ------------------------------------ | ----------------------------------- |
+| 3-10 | Anaconda Distribution 2019.10 | Windows, Linux, macOS) |
+
+We also provide a PDF file that has color images of the screenshots/diagrams used in this book. [Click here to download it](https://static.packt-cdn.com/downloads/9781838824914_ColorImages.pdf).
+
 ### Related products
 * Hands-On Deep Learning Algorithms with Python  [[Packt]](https://www.packtpub.com/big-data-and-business-intelligence/hands-deep-learning-algorithms-python?utm_source=github&utm_medium=repository&utm_campaign=9781789344158) [[Amazon]](https://www.amazon.com/dp/1789344158)
 
