@@ -1,3 +1,8 @@
+## $5 Tech Unlocked 2021!
+[Buy and download this Book for only $5 on PacktPub.com](https://www.packtpub.com/product/hands-on-neuroevolution-with-python/9781838824914)
+-----
+*If you have read this book, please leave a review on [Amazon.com](https://www.amazon.com/gp/product/183882491X).     Potential readers can then use your unbiased opinion to help them make purchase decisions. Thank you. The $5 campaign         runs from __December 15th 2020__ to __January 13th 2021.__*
+
 # Hands-on-Neuroevolution-with-Python
 
 <a href="https://www.packtpub.com/data/hands-on-neuroevolution-with-python?utm_source=github&utm_medium=repository&utm_campaign=9781838822002"><img src="https://www.packtpub.com/media/catalog/product/cache/ecd051e9670bd57df35c8f0b122d8aea/9/7/9781838824914-original.jpeg" alt="Learning DevOps " height="256px" align="right"></a>
